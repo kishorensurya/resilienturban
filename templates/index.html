@@ -1,0 +1,854 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>RESILIENTURBAN — Hyper-Local Flood Early Warning & Community Action Network</title>
+  
+  <!-- Leaflet CSS -->
+  <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" integrity="sha256-p4NxAoJBhIIN+hmNHrzRCf9tD/miZyoHS5obTRR9BMY=" crossorigin=""/>
+  
+  <!-- Custom Cyber-Hydraulic 3D Stylesheet -->
+  <link rel="stylesheet" href="{{ url_for('static', filename='css/style.css') }}">
+</head>
+<body>
+
+  <!-- 3D Digital Rain & Hydrological Particle Canvas -->
+  <canvas id="canvas-fx"></canvas>
+
+  <div class="app-wrapper">
+
+    <!-- Top Master Header & Navigation -->
+    <header class="header-bar">
+      <div class="brand-section">
+        <div class="brand-logo-3d">🏢</div>
+        <div class="brand-text">
+          <h1>BBMP & NDMA <span class="brand-badge" style="background:#ef4444; color:#fff;">MUNICIPAL COMMAND HUD</span></h1>
+          <p>Disaster Operations Control & Early Warning Directorate — Urban Flooding</p>
+        </div>
+      </div>
+
+      <!-- Main Navigation Tabs -->
+      <nav class="nav-tabs">
+        <button class="nav-btn active" data-view="view-dashboard">
+          <span>📊</span> Tactical HUD
+        </button>
+        <button class="nav-btn" data-view="view-map">
+          <span>🗺️</span> Ward Risk Map
+        </button>
+        <button class="nav-btn" data-view="view-analysis">
+          <span>🧠</span> ML Risk Models
+        </button>
+        <button class="nav-btn" data-view="view-routes">
+          <span>🛣️</span> Road Network
+        </button>
+        <button class="nav-btn" data-view="view-sos">
+          <span>🚨</span> SOS Triage Desk
+        </button>
+        <button class="nav-btn" data-view="view-resources">
+          <span>🚑</span> Fleet Logistics
+        </button>
+        <button class="nav-btn" data-view="view-reports">
+          <span>📢</span> Citizen Intel
+        </button>
+        <button class="nav-btn" data-view="view-control-room">
+          <span>🎮</span> Stress Simulation & Telephony
+        </button>
+      </nav>
+
+      <!-- Right Support, Citizen Portal Link & Profile Controls -->
+      <div class="header-actions">
+        <!-- Switch to Resident/Citizen Portal -->
+        <a href="/citizen" class="support-pill" style="border-color:#38bdf8; color:#38bdf8; background:rgba(14,165,233,0.15);" title="Switch to Citizen Safety Portal">
+          <span>👤</span> Citizen Portal &rarr;
+        </a>
+
+        <!-- Download Android APK -->
+        <a href="/download/resilient-urban.apk" class="support-pill" style="border-color:#22c55e; color:#22c55e; background:rgba(34,197,94,0.15);" title="Download Working Android APK">
+          <span>📱</span> Android APK
+        </a>
+
+        <!-- Customer Support Pill -->
+        <a href="tel:{{ support_phone }}" class="support-pill" title="Emergency Municipal Support Helpline">
+          <span>📞</span> {{ support_phone }}
+        </a>
+
+        <!-- User Profile Pill -->
+        <div class="user-profile-badge">
+          <span>👤 {{ user.name }}</span>
+          <span class="user-role-tag" style="background:#dc2626;">{{ user.role }}</span>
+          {% if user.id %}
+            <button onclick="fetch('/api/logout', {method:'POST'}).then(() => window.location.reload())" 
+                    style="background:none; border:none; color:#ff1744; cursor:pointer; font-size:12px; margin-left:4px;">
+              Exit
+            </button>
+          {% else %}
+            <a href="/login" style="color:var(--neon-cyan); text-decoration:none; font-size:12px; margin-left:4px;">Login</a>
+          {% endif %}
+        </div>
+      </div>
+    </header>
+
+    <!-- MOBILE PWA 1-TAP INSTALL NOTICE BAR -->
+    <div id="mobile-install-banner" style="background:linear-gradient(90deg, #0284c7, #0369a1); color:white; padding:0.6rem 1.25rem; display:flex; justify-content:space-between; align-items:center; gap:1rem; border-bottom:1px solid #38bdf8; font-size:0.85rem;">
+      <div style="display:flex; align-items:center; gap:0.6rem;">
+        <span style="font-size:1.3rem;">&#128241;</span>
+        <div>
+          <strong>Run ResilientUrban on Android Mobile:</strong>
+          <span style="color:#e0f2fe; margin-left:0.3rem;">Install as a native full-screen app with 1 tap (no APK errors)!</span>
+        </div>
+      </div>
+      <div style="display:flex; gap:0.5rem; align-items:center;">
+        <button onclick="triggerPwaInstall()" style="background:#ffffff; color:#0284c7; border:none; font-weight:800; padding:0.4rem 0.9rem; border-radius:6px; cursor:pointer; font-size:0.82rem; box-shadow:0 2px 8px rgba(0,0,0,0.2); white-space:nowrap;">
+          &#9889; INSTALL ON PHONE (1-TAP)
+        </button>
+        <button onclick="document.getElementById('mobile-install-banner').style.display='none'" style="background:transparent; border:none; color:white; font-size:1.2rem; cursor:pointer; padding:0 0.4rem;" title="Dismiss">&times;</button>
+      </div>
+    </div>
+
+    <!-- Main Content Body -->
+    <main class="main-content">
+
+      <!-- Dynamic Active Risk Alert Banner -->
+      <div id="master-alert-banner" class="alert-banner low">
+        <div class="alert-banner-left">
+          <div class="radar-pulse-dot"></div>
+          <div>
+            <strong id="banner-risk-level" style="font-family: var(--font-display); letter-spacing: 1px;">LOW FLOOD RISK</strong> — 
+            <span id="banner-ward-name">Ward 12 (Zone B)</span>
+          </div>
+        </div>
+        <div style="display: flex; gap: 16px; font-size: 13px; font-family: var(--font-tech);">
+          <span>Rainfall: <strong id="banner-rain-val" style="color:#fff;">25 mm/h</strong></span>
+          <span>Water Depth: <strong id="banner-water-val" style="color:#fff;">20 cm</strong></span>
+          <span>Drain Stress: <strong id="banner-drain-val" style="color:#fff;">30%</strong></span>
+          <span>Risk Probability: <strong id="banner-score-val" style="color:var(--neon-cyan);">32%</strong></span>
+        </div>
+      </div>
+
+      <!-- LIVE REAL-TIME METEOROLOGICAL TELEMETRY BAR -->
+      <section class="live-weather-bar" style="background: rgba(14, 23, 44, 0.85); backdrop-filter: var(--glass-blur); border: 1px solid var(--border-glow); border-radius: var(--radius-md); padding: 12px 18px; display: flex; align-items: center; justify-content: space-between; flex-wrap: wrap; gap: 12px; box-shadow: 0 4px 20px rgba(0,0,0,0.5);">
+        <div style="display: flex; align-items: center; gap: 12px;">
+          <span style="font-size: 22px;">🛰️</span>
+          <div>
+            <div style="font-family: var(--font-display); font-size: 13px; color: var(--neon-cyan); letter-spacing: 1px;">
+              LIVE WMO / OPEN-METEO METEOROLOGICAL TELEMETRY
+            </div>
+            <div style="font-size: 11px; color: var(--text-muted);">
+              Direct Ground Station & Satellite Feed Active
+            </div>
+          </div>
+        </div>
+
+        <!-- City Selector -->
+        <div style="display: flex; align-items: center; gap: 10px;">
+          <label style="font-size: 12px; font-family: var(--font-tech); color: var(--text-muted);">Catchment Basin:</label>
+          <select id="select-city" class="form-select" style="padding: 4px 10px; font-size: 12px; width: auto; background: rgba(0,0,0,0.5);">
+            <option value="Bengaluru (Koramangala/HSR)">Bengaluru — Koramangala / HSR Basin</option>
+            <option value="Mumbai (Mithi River Basin)">Mumbai — Mithi River Basin</option>
+            <option value="Chennai (Adyar / Velachery)">Chennai — Velachery / Adyar Basin</option>
+            <option value="Hyderabad (Musi Catchment)">Hyderabad — Musi River Catchment</option>
+          </select>
+          <button id="btn-sync-live-weather" class="btn-secondary" style="font-size: 11px; padding: 6px 12px; border-color: var(--neon-cyan); color: #fff;">
+            🔄 Sync Live Weather Telemetry
+          </button>
+        </div>
+
+        <!-- Live Telemetry Badges -->
+        <div style="display: flex; gap: 14px; font-family: var(--font-tech); font-size: 13px;">
+          <div>Temp: <strong id="telemetry-temp" style="color:#fff;">27.1°C</strong></div>
+          <div>Precipitation: <strong id="telemetry-precip" style="color:var(--neon-cyan);">0.1 mm/h</strong></div>
+          <div>Humidity: <strong id="telemetry-humidity" style="color:#fff;">58%</strong></div>
+          <div>Pressure: <strong id="telemetry-pressure" style="color:#fff;">916.3 hPa</strong></div>
+          <div>Wind: <strong id="telemetry-wind" style="color:#fff;">6.6 km/h</strong></div>
+        </div>
+      </section>
+
+      <!-- PROMINENT 3D FLOOD DEMONSTRATION CONTROLLER (18 STEPS) -->
+      <section class="demo-controller-card">
+        <div class="demo-controller-header">
+          <div class="demo-header-left">
+            <h2>⚡ SC-04 FULL FLOOD DEMONSTRATION SCENARIO</h2>
+            <p>Runs the 18-step sequential story: Heavy Rain → Rising Water → Main Road Blocked → SOS #1027 → A-07 Matched → Lower-Risk Route → Resolved</p>
+          </div>
+          <div class="demo-actions">
+            <button id="btn-run-demo" class="btn-demo-run">
+              <span>⚡</span> RUN FULL FLOOD DEMO
+            </button>
+            <button id="btn-next-step" class="btn-secondary">
+              <span>▶|</span> Next Step
+            </button>
+            <button id="btn-reset-demo" class="btn-secondary">
+              <span>↺</span> Reset Baseline
+            </button>
+          </div>
+        </div>
+
+        <!-- Glowing Progress Bar -->
+        <div class="demo-timeline-track">
+          <div id="demo-timeline-fill" class="demo-timeline-fill"></div>
+        </div>
+
+        <div class="demo-step-display">
+          <span id="demo-step-label" class="step-label">BASELINE READY (0/18)</span>
+          <span id="demo-step-narrative" class="step-narrative">System initialized in standard monitoring conditions.</span>
+          <span style="font-size: 11px; color: var(--text-dim);">Automated 18-Step Response Workflow</span>
+        </div>
+      </section>
+
+      <!-- KPI METRICS GRID -->
+      <section class="kpi-grid">
+        <div class="kpi-card">
+          <div class="kpi-title">Active Flood Zones <span>🌊</span></div>
+          <div id="kpi-active-flood-zones" class="kpi-value">1</div>
+          <div class="kpi-subtitle">Catchment basins under alert</div>
+        </div>
+        <div class="kpi-card critical">
+          <div class="kpi-title">Critical Risk Zones <span>⚠️</span></div>
+          <div id="kpi-critical-zones" class="kpi-value critical">1</div>
+          <div class="kpi-subtitle">Ward 12 Basin (St. John's)</div>
+        </div>
+        <div class="kpi-card">
+          <div class="kpi-title">Blocked Roads <span>🚫</span></div>
+          <div id="kpi-blocked-roads" class="kpi-value">0</div>
+          <div class="kpi-subtitle">Impassable flood depth >50cm</div>
+        </div>
+        <div class="kpi-card critical">
+          <div class="kpi-title">Active Help Requests <span>🚨</span></div>
+          <div id="kpi-active-help-requests" class="kpi-value critical">1</div>
+          <div class="kpi-subtitle">SOS Emergency Queue</div>
+        </div>
+        <div class="kpi-card">
+          <div class="kpi-title">Available Resources <span>🛡️</span></div>
+          <div id="kpi-available-resources" class="kpi-value">4</div>
+          <div class="kpi-subtitle">Emergency response fleet</div>
+        </div>
+        <div class="kpi-card">
+          <div class="kpi-title">Verified Reports <span>📢</span></div>
+          <div id="kpi-verified-reports" class="kpi-value">2</div>
+          <div class="kpi-subtitle">Citizen confidence score >70%</div>
+        </div>
+        <div class="kpi-card">
+          <div class="kpi-title">Active Medical Units <span>🚑</span></div>
+          <div id="kpi-active-medical-units" class="kpi-value">1</div>
+          <div class="kpi-subtitle">Ambulance Unit A-07</div>
+        </div>
+      </section>
+
+      <!-- =============================================================
+           VIEW 1: COMMAND CENTER (MASTER DASHBOARD & MAP)
+           ============================================================= -->
+      <section id="view-dashboard" class="view-section active">
+        <div class="dashboard-main-grid">
+          
+          <!-- Map Card -->
+          <div class="map-container-card">
+            <div class="map-card-header">
+              <h3><span>🛰️</span> HYPER-LOCAL FLOOD GIS MAP & ROUTE NAVIGATOR</h3>
+              <div style="display: flex; gap: 8px;">
+                <button onclick="window.ResilientMap.locateUserDevice()" class="btn-secondary" style="font-size: 11px; padding: 4px 10px;">
+                  📍 Locate Device
+                </button>
+                <button onclick="window.ResilientMap.focusOnLocation(12.9352, 77.6245)" class="btn-secondary" style="font-size: 11px; padding: 4px 10px;">
+                  Focus Ward 12
+                </button>
+                <button id="btn-calc-route" class="btn-secondary" style="font-size: 11px; padding: 4px 10px; border-color: var(--neon-cyan);">
+                  Calculate Lower-Risk Route
+                </button>
+              </div>
+            </div>
+
+            <!-- Leaflet Map Canvas -->
+            <div id="map"></div>
+
+            <!-- Floating Legend -->
+            <div class="map-legend">
+              <div class="legend-item"><div class="legend-color low"></div> Low Risk (0–25%)</div>
+              <div class="legend-item"><div class="legend-color moderate"></div> Moderate (26–50%)</div>
+              <div class="legend-item"><div class="legend-color high"></div> High Risk (51–75%)</div>
+              <div class="legend-item"><div class="legend-color critical"></div> Critical (76–100%)</div>
+              <div class="legend-item"><div class="legend-color route"></div> Lower-Risk Route</div>
+            </div>
+          </div>
+
+          <!-- Sidebar: Timeline & Risk Trend -->
+          <div class="dashboard-sidebar">
+            
+            <!-- Risk Trend Chart Card -->
+            <div class="side-card">
+              <div class="side-card-header">
+                <span>📈 FLOOD RISK SURGE TREND</span>
+                <small style="color: var(--text-dim); font-size: 11px;">Ward 12 Basin</small>
+              </div>
+              <div id="risk-trend-chart" style="display: flex; justify-content: space-between; align-items: flex-end; height: 110px; margin-top: 8px;">
+                <!-- Populated dynamically by AnalyticsEngine -->
+              </div>
+              <div style="font-size: 10px; color: var(--text-dim); margin-top: 8px; text-align: center;">
+                Hydrological transition: 32% (Low) → 51% → 69% → 87% (Critical)
+              </div>
+            </div>
+
+            <!-- Incident Timeline Card -->
+            <div class="side-card">
+              <div class="side-card-header">
+                <span>⏱️ INCIDENT TIMELINE</span>
+                <span class="badge-tag critical">LIVE</span>
+              </div>
+              <div id="timeline-feed-list" class="timeline-feed">
+                <!-- Populated dynamically -->
+              </div>
+            </div>
+
+          </div>
+        </div>
+      </section>
+
+      <!-- =============================================================
+           VIEW 2: LIVE RISK MAP (FULL SCREEN GIS)
+           ============================================================= -->
+      <section id="view-map" class="view-section">
+        <div class="side-card" style="margin-bottom: 14px;">
+          <div class="side-card-header">
+            <span>🗺️ DEDICATED GIS MAP EXPLORER</span>
+            <small style="color: var(--neon-cyan);">Browser Geolocation Active • Ward 12 Polygon Layered</small>
+          </div>
+          <p style="font-size: 12px; color: var(--text-muted);">
+            Interactive geospatial visualizer displaying flood catchment contours, road surface waterlogging depth, active citizen reporting pins, and emergency fleet positioning.
+          </p>
+        </div>
+      </section>
+
+      <!-- =============================================================
+           VIEW 3: ML RISK ANALYSIS & WEIGHTED BASELINE
+           ============================================================= -->
+      <section id="view-analysis" class="view-section">
+        <div class="ml-analysis-grid">
+          
+          <!-- Random Forest vs Weighted Baseline Comparison -->
+          <div class="gauge-comparison-card">
+            <h3 style="font-family: var(--font-display); font-size: 15px; color: #fff;">
+              <span>🤖</span> RANDOM FOREST ML MODEL VS. WEIGHTED BASELINE
+            </h3>
+            <p style="font-size: 12px; color: var(--text-muted);">
+              Transparent comparison between trained Random Forest probability estimator and configurable multi-factor baseline indicator.
+            </p>
+
+            <div class="model-vs-baseline-box">
+              <div class="score-pillar">
+                <div class="pillar-title">Random Forest Probability</div>
+                <div id="analytics-ml-prob" class="pillar-num crimson">82.4%</div>
+                <span id="analytics-ml-badge" class="pillar-badge critical">CRITICAL</span>
+              </div>
+              <div style="color: var(--text-dim); font-size: 20px;">⚡</div>
+              <div class="score-pillar">
+                <div class="pillar-title">Weighted Baseline Score</div>
+                <div id="analytics-base-score" class="pillar-num cyan">73.0%</div>
+                <span id="analytics-base-badge" class="pillar-badge high">HIGH</span>
+              </div>
+            </div>
+
+            <div style="background: rgba(0,0,0,0.25); padding: 12px; border-radius: 8px; font-size: 12px;">
+              <strong>Hybrid Transparent Score:</strong> <span id="analytics-hybrid-score" style="color: var(--neon-cyan); font-weight: 700;">78.6% (CRITICAL)</span>
+              <p style="font-size: 11px; color: var(--text-muted); margin-top: 4px;">
+                Combined recommendation: 60% Random Forest Probability + 40% Transparent Baseline.
+              </p>
+            </div>
+
+            <!-- Interactive Sliders to customize input parameters & weights -->
+            <div style="margin-top: 10px;">
+              <h4 style="font-family: var(--font-tech); font-size: 14px; margin-bottom: 8px;">Interactive Hydrology Parameter Sliders:</h4>
+              
+              <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 10px; font-size: 12px;">
+                <div>
+                  <label>Rainfall: <span id="val-rain" style="color:var(--neon-cyan);">72 mm/h</span></label>
+                  <input type="range" id="slider-rain" min="0" max="140" value="72" oninput="window.AnalyticsEngine.recalculateCustomRisk()" style="width: 100%;">
+                </div>
+                <div>
+                  <label>Water Level: <span id="val-water" style="color:var(--neon-cyan);">68 cm</span></label>
+                  <input type="range" id="slider-water" min="0" max="140" value="68" oninput="window.AnalyticsEngine.recalculateCustomRisk()" style="width: 100%;">
+                </div>
+                <div>
+                  <label>Drainage Stress: <span id="val-drain" style="color:var(--neon-cyan);">71%</span></label>
+                  <input type="range" id="slider-drain" min="0" max="100" value="71" oninput="window.AnalyticsEngine.recalculateCustomRisk()" style="width: 100%;">
+                </div>
+                <div>
+                  <label>Report Confidence: <span id="val-conf" style="color:var(--neon-cyan);">88%</span></label>
+                  <input type="range" id="slider-conf" min="0" max="100" value="88" oninput="window.AnalyticsEngine.recalculateCustomRisk()" style="width: 100%;">
+                </div>
+              </div>
+
+              <div style="margin-top: 14px; font-size: 11px; color: var(--text-muted); background: rgba(255,255,255,0.03); padding: 8px; border-radius: 6px;">
+                <strong>Baseline Weight Formulation:</strong><br>
+                <code>Risk Score = 0.35 × Rainfall + 0.30 × Water Level + 0.20 × Drainage + 0.15 × Confidence</code><br>
+                <span style="color: var(--neon-amber);">"Prototype weights based on relative influence of flood indicators. Can later be calibrated using historical flood data."</span>
+              </div>
+            </div>
+          </div>
+
+          <!-- Feature Importance & Confusion Matrix -->
+          <div class="gauge-comparison-card">
+            <h3 style="font-family: var(--font-display); font-size: 15px; color: #fff;">
+              <span>📊</span> MODEL EVALUATION & FEATURE IMPORTANCE
+            </h3>
+
+            <!-- Metrics row -->
+            <div style="display: flex; gap: 10px;">
+              <div class="side-card" style="flex: 1; text-align: center; padding: 10px;">
+                <div style="font-size: 11px; color: var(--text-muted);">ACCURACY</div>
+                <div id="metric-accuracy" style="font-size: 20px; font-weight: 700; color: #00e676;">89.7%</div>
+              </div>
+              <div class="side-card" style="flex: 1; text-align: center; padding: 10px;">
+                <div style="font-size: 11px; color: var(--text-muted);">PRECISION</div>
+                <div id="metric-precision" style="font-size: 20px; font-weight: 700; color: var(--neon-cyan);">91.4%</div>
+              </div>
+              <div class="side-card" style="flex: 1; text-align: center; padding: 10px;">
+                <div style="font-size: 11px; color: var(--text-muted);">RECALL</div>
+                <div id="metric-recall" style="font-size: 20px; font-weight: 700; color: var(--neon-amber);">91.9%</div>
+              </div>
+            </div>
+
+            <!-- Confusion Matrix -->
+            <div>
+              <h4 style="font-family: var(--font-tech); font-size: 13px; color: var(--text-muted); margin-bottom: 4px;">TEST DATA CONFUSION MATRIX:</h4>
+              <table class="cm-table">
+                <thead>
+                  <tr>
+                    <th>Class</th>
+                    <th>Pred: No Flood</th>
+                    <th>Pred: Flood</th>
+                  </tr>
+                </thead>
+                <tbody id="confusion-matrix-body">
+                  <!-- Populated dynamically -->
+                </tbody>
+              </table>
+            </div>
+
+            <!-- Feature Importance -->
+            <div style="margin-top: 10px;">
+              <h4 style="font-family: var(--font-tech); font-size: 13px; color: var(--text-muted); margin-bottom: 8px;">RANDOM FOREST FEATURE IMPORTANCE:</h4>
+              <div id="feature-importance-list" class="feature-bars-container">
+                <!-- Populated dynamically -->
+              </div>
+            </div>
+
+            <p style="font-size: 10px; color: #888; margin-top: 10px; font-style: italic;">
+              "Prototype ML model. Accuracy depends on training data quality and real-world calibration."
+            </p>
+          </div>
+        </div>
+      </section>
+
+      <!-- =============================================================
+           VIEW 4: SAFE ROUTES & DIJKSTRA ENGINE
+           ============================================================= -->
+      <section id="view-routes" class="view-section">
+        <div class="routes-layout-grid">
+          
+          <!-- Road Status Controller -->
+          <div class="side-card">
+            <div class="side-card-header">
+              <span>🛣️ ROAD NETWORK STATUS & WATER DEPTH</span>
+              <small style="color: var(--neon-cyan);">Dijkstra Graph</small>
+            </div>
+            <p style="font-size: 12px; color: var(--text-muted); margin-bottom: 12px;">
+              Click any road to toggle flood blockage and trigger dynamic path re-optimization.
+            </p>
+            <div id="roads-status-list" class="road-status-list">
+              <!-- Populated dynamically -->
+            </div>
+          </div>
+
+          <!-- Dijkstra Pathfinding Results -->
+          <div class="side-card">
+            <div class="side-card-header">
+              <span>🧭 LOWER-RISK ALTERNATIVE ROUTE ENGINE</span>
+              <span class="badge-tag low">OPTIMIZED</span>
+            </div>
+            <p style="font-size: 12px; color: var(--text-muted);">
+              Route scoring criteria: <strong>40% Distance + 60% Flood Risk Penalty</strong>. Blocked segments (water depth > 50cm) receive infinite penalty and are removed from candidate paths.
+            </p>
+
+            <div id="route-result-display" class="route-calc-result-box">
+              <h4 style="color: #00e5ff; font-family: var(--font-display); font-size: 14px; margin-bottom: 6px;">Lower-Risk Alternative Route</h4>
+              <p style="font-size: 12px; margin: 3px 0;">Corridor: <strong>Route D (Inner Ring) → Route E (Sony Signal High Causeway)</strong></p>
+              <p style="font-size: 12px; margin: 3px 0;">Total Distance: <strong>3.6 km</strong> (~7.7 mins at emergency speed)</p>
+              <p style="font-size: 12px; margin: 3px 0;">Route Risk: <strong style="color: #00e676;">LOW</strong></p>
+              <div style="margin-top: 6px; font-size: 11px; color: #ffab00; background: rgba(255,171,0,0.1); padding: 6px; border-radius: 4px;">
+                Main Road (80ft basin) is submerged (water depth 75cm, blocked). Diverted via higher-elevation corridor.
+              </div>
+              <p style="font-size: 9px; color: #888; margin-top: 6px;">Lower-Risk Alternative Route. Actual road conditions may change. Prototype demonstration.</p>
+            </div>
+
+            <div style="margin-top: 14px; display: flex; gap: 10px;">
+              <button onclick="window.App.switchView('view-dashboard')" class="btn-primary" style="font-size: 12px; padding: 8px;">
+                Inspect Route on Live Map
+              </button>
+            </div>
+          </div>
+        </div>
+      </section>
+
+      <!-- =============================================================
+           VIEW 5: HELP REQUESTS & SOS PORTAL
+           ============================================================= -->
+      <section id="view-sos" class="view-section">
+        <div class="form-grid">
+          
+          <!-- SOS Intake Form -->
+          <div class="form-panel">
+            <h3 style="font-family: var(--font-display); font-size: 16px; color: #fff; margin-bottom: 12px; display: flex; align-items: center; gap: 8px;">
+              <span>🚨</span> CITIZEN EMERGENCY SOS REQUEST
+            </h3>
+            <p style="font-size: 12px; color: var(--text-muted); margin-bottom: 16px;">
+              Direct intake for citizens trapped or injured in flood emergencies. Triage engine classifies priority automatically.
+            </p>
+
+            <form id="form-sos-request">
+              <div class="form-group">
+                <label>Emergency Type:</label>
+                <select id="sos-type" class="form-select" required>
+                  <option value="Serious injury">Serious injury / Acute Trauma (CRITICAL)</option>
+                  <option value="Medical assistance">Medical assistance / Oxygen needed (CRITICAL)</option>
+                  <option value="Evacuation">Water entered house / Evacuation needed (HIGH)</option>
+                  <option value="Elderly assistance">Elderly assistance / Low mobility (HIGH)</option>
+                  <option value="Pregnant-person evacuation">Pregnant-person evacuation (HIGH)</option>
+                  <option value="Rescue assistance">Stranded in water / Rescue craft needed (HIGH)</option>
+                  <option value="Food/water">Drinking water / Food supply stranded (NORMAL)</option>
+                  <option value="Mobility assistance">General mobility / Wheelchair support (MEDIUM)</option>
+                </select>
+              </div>
+
+              <div class="form-group">
+                <label>Number of People Affected:</label>
+                <input type="number" id="sos-people" class="form-input" min="1" max="50" value="1" required>
+              </div>
+
+              <div class="form-group">
+                <label>Ward / Locality:</label>
+                <select id="sos-ward" class="form-select">
+                  <option value="Ward 12">Ward 12 — St. John's Basin (High Alert)</option>
+                  <option value="Ward 11">Ward 11 — Koramangala 4th Block</option>
+                  <option value="Ward 13">Ward 13 — Ejipura Canal Valley</option>
+                  <option value="Ward 10">Ward 10 — Sony Junction</option>
+                  <option value="Ward 14">Ward 14 — National Games Village</option>
+                </select>
+              </div>
+
+              <div class="form-group">
+                <label>Situation Details & Landmark:</label>
+                <textarea id="sos-desc" class="form-textarea" rows="3" placeholder="Describe floodwater level, injuries, or nearest dry landmark..." required>Submerged near culvert with leg injury. Immediate extraction required.</textarea>
+              </div>
+
+              <button type="submit" class="btn-primary sos">
+                TRANSMIT CRITICAL SOS BROADCAST
+              </button>
+            </form>
+
+            <div style="margin-top: 14px; font-size: 11px; color: var(--text-dim); text-align: center;">
+              Emergency Helpline: <strong>{{ support_phone }}</strong> | Email: <strong>{{ support_email }}</strong>
+            </div>
+          </div>
+
+          <!-- Active Help Requests Queue -->
+          <div class="side-card">
+            <div class="side-card-header">
+              <span>📋 LIVE HELP REQUESTS QUEUE</span>
+              <span class="badge-tag critical">PRIORITY TRIAGE</span>
+            </div>
+            <div id="help-requests-feed" style="display: flex; flex-direction: column; gap: 10px; max-height: 480px; overflow-y: auto;">
+              <!-- Populated dynamically -->
+            </div>
+          </div>
+        </div>
+      </section>
+
+      <!-- =============================================================
+           VIEW 6: RESOURCES & FLEET MATCHING
+           ============================================================= -->
+      <section id="view-resources" class="view-section">
+        <div class="form-grid">
+          
+          <!-- Resource Matching Algorithm Tester -->
+          <div class="form-panel">
+            <h3 style="font-family: var(--font-display); font-size: 15px; color: #fff; margin-bottom: 10px;">
+              <span>🎯</span> AUTOMATED RESOURCE MATCHING ENGINE
+            </h3>
+            <p style="font-size: 12px; color: var(--text-muted); margin-bottom: 14px;">
+              Matches responders based on <strong>Capability (40%)</strong>, <strong>Availability (25%)</strong>, <strong>Distance (20%)</strong>, and <strong>Route Risk (15%)</strong>.
+            </p>
+
+            <div class="form-group">
+              <label>Select Emergency Requirement:</label>
+              <select id="match-req-type" class="form-select">
+                <option value="Serious injury">Serious injury / Trauma Care (Needs Medical Unit A-07)</option>
+                <option value="Evacuation">Water Evacuation (Needs 4x4 or Zodiac Boat)</option>
+                <option value="Rescue assistance">Deep Water Rescue (Needs Rescue Team R-02)</option>
+                <option value="Food/water">Supplies Delivery (Needs Volunteer V-03)</option>
+              </select>
+            </div>
+
+            <div style="font-size: 12px; margin-bottom: 12px; background: rgba(0,0,0,0.25); padding: 10px; border-radius: 6px;">
+              <div style="font-weight: 700; color: #fff; margin-bottom: 6px;">Configurable Matching Weights:</div>
+              <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 8px;">
+                <div>Capability: <input type="number" id="match-w-cap" value="40" min="0" max="100" class="form-input" style="padding:4px 8px;">%</div>
+                <div>Availability: <input type="number" id="match-w-avail" value="25" min="0" max="100" class="form-input" style="padding:4px 8px;">%</div>
+                <div>Distance: <input type="number" id="match-w-dist" value="20" min="0" max="100" class="form-input" style="padding:4px 8px;">%</div>
+                <div>Route Safety: <input type="number" id="match-w-risk" value="15" min="0" max="100" class="form-input" style="padding:4px 8px;">%</div>
+              </div>
+            </div>
+
+            <button id="btn-test-match" class="btn-primary" style="margin-bottom: 14px;">
+              RUN RESOURCE MATCHING ALGORITHM
+            </button>
+
+            <div id="match-result-box">
+              <!-- Populated dynamically -->
+            </div>
+          </div>
+
+          <!-- Fleet Status List -->
+          <div class="side-card">
+            <div class="side-card-header">
+              <span>🚑 EMERGENCY RESPONSE FLEET REGISTRY</span>
+              <small style="color: var(--neon-cyan);">High-Clearance Vehicles</small>
+            </div>
+            <div id="fleet-resources-list" style="display: flex; flex-direction: column; gap: 10px; max-height: 480px; overflow-y: auto;">
+              <!-- Populated dynamically -->
+            </div>
+          </div>
+        </div>
+      </section>
+
+      <!-- =============================================================
+           VIEW 7: COMMUNITY REPORTS & CONFIDENCE SCORING
+           ============================================================= -->
+      <section id="view-reports" class="view-section">
+        <div class="form-grid">
+          
+          <!-- Submit Community Flood Report -->
+          <div class="form-panel">
+            <h3 style="font-family: var(--font-display); font-size: 15px; color: #fff; margin-bottom: 10px;">
+              <span>📢</span> CROWDSOURCED FLOOD OBSERVATION REPORT
+            </h3>
+            <p style="font-size: 12px; color: var(--text-muted); margin-bottom: 14px;">
+              Citizens can log hyper-local street-level observations. Automatic prototype confidence scoring validates cluster integrity.
+            </p>
+
+            <form id="form-citizen-report">
+              <div class="form-group">
+                <label>Observation Category:</label>
+                <select id="rep-type" class="form-select" required>
+                  <option value="Flooded road">Flooded road / Impassable water</option>
+                  <option value="Waterlogging">Waterlogging near sidewalk / curb</option>
+                  <option value="Rising water">Rapidly rising water level</option>
+                  <option value="Blocked drainage">Blocked stormwater drainage / grate</option>
+                  <option value="Flood-related fallen tree">Flood-related fallen tree / power line</option>
+                  <option value="Other flood-related observation">Other flood observation</option>
+                </select>
+              </div>
+
+              <div class="form-group">
+                <label>Ward / Locality:</label>
+                <select id="rep-ward" class="form-select">
+                  <option value="Ward 12">Ward 12 — St. John's Basin</option>
+                  <option value="Ward 11">Ward 11 — Koramangala 4th Block</option>
+                  <option value="Ward 13">Ward 13 — Ejipura Canal Valley</option>
+                  <option value="Ward 10">Ward 10 — Sony Junction</option>
+                </select>
+              </div>
+
+              <div class="form-group">
+                <label>Description of Flood Conditions:</label>
+                <textarea id="rep-desc" class="form-textarea" rows="3" placeholder="Water height, vehicle passability, clogged drains..." required>Water rising up to vehicle wheels near 80 Feet Road junction.</textarea>
+              </div>
+
+              <div class="form-group" style="display: flex; align-items: center; gap: 8px;">
+                <input type="checkbox" id="rep-evidence" checked style="accent-color: var(--neon-cyan);">
+                <label for="rep-evidence" style="margin: 0; font-size: 12px;">Include photo evidence / sensor verification (+10% Confidence)</label>
+              </div>
+
+              <button type="submit" class="btn-primary">
+                SUBMIT FLOOD REPORT
+              </button>
+            </form>
+
+            <div style="margin-top: 14px; background: rgba(0,0,0,0.25); padding: 10px; border-radius: 6px; font-size: 11px;">
+              <strong>Prototype Report Confidence Score:</strong><br>
+              <code>Base 40 + Independent Reports (+8 each) + Location Consistency (+10) + Evidence (+10)</code><br>
+              <span style="color: var(--text-dim);">Tier: 0–40 Low | 41–70 Medium | 71–90 High | 91–100 Verified</span>
+            </div>
+          </div>
+
+          <!-- Existing Verified Reports -->
+          <div class="side-card">
+            <div class="side-card-header">
+              <span>📡 ACTIVE COMMUNITY FLOOD REPORTS</span>
+              <span class="badge-tag medium">VERIFIED FEED</span>
+            </div>
+            <div id="reports-feed-container" style="display: flex; flex-direction: column; gap: 10px; max-height: 480px; overflow-y: auto;">
+              <!-- Populated dynamically via App.refreshData -->
+            </div>
+          </div>
+        </div>
+      </section>
+
+      <!-- =============================================================
+           VIEW 8: MUNICIPALITY CONTROL ROOM & STRESS-TEST ENGINE
+           ============================================================= -->
+      <section id="view-control-room" class="view-section">
+        
+        <!-- TOP: Monte Carlo Randomized Stress-Tester & False Data Engine -->
+        <div class="side-card" style="margin-bottom: 20px; border: 1px solid var(--neon-cyan);">
+          <div class="side-card-header">
+            <span>🎲 MONTE CARLO RANDOM FLOOD STRESS-TESTER & FALSE DATA FILTER</span>
+            <div style="display:flex; align-items:center; gap:8px;">
+              <span id="sim-clock-display" style="font-family:var(--font-tech); color:var(--neon-cyan); font-size:12px;">SIM CLOCK: 14:42:00</span>
+              <span class="badge-tag critical">DYNAMIC RECALCULATION</span>
+            </div>
+          </div>
+          <p style="font-size: 12px; color: var(--text-muted); margin-bottom: 14px;">
+            Inject random flash cloudburst values, false/noisy crowdsourced reports, and sudden road culvert failures.
+            The system recalculates Random Forest ML probability, filters low-confidence false reports (<50%), dynamically triggers Dijkstra rerouting, and dispatches hospital ambulances in real time.
+          </p>
+
+          <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(200px, 1fr)); gap: 12px; margin-bottom: 14px;">
+            <div style="background:rgba(0,0,0,0.3); padding:10px; border-radius:6px; border:1px solid var(--border-subtle);">
+              <label style="font-size:11px; color:var(--text-dim); display:block; margin-bottom:4px;">Simulated Rainfall (mm/h):</label>
+              <input type="range" id="rand-rain-slider" min="15" max="190" value="95" oninput="document.getElementById('rand-rain-val').textContent = this.value + ' mm/h'" style="width:100%; accent-color:var(--neon-cyan);">
+              <span id="rand-rain-val" style="font-family:var(--font-tech); color:#fff; font-size:13px; font-weight:bold;">95 mm/h</span>
+            </div>
+            <div style="background:rgba(0,0,0,0.3); padding:10px; border-radius:6px; border:1px solid var(--border-subtle);">
+              <label style="font-size:11px; color:var(--text-dim); display:block; margin-bottom:4px;">Simulated Water Depth (cm):</label>
+              <input type="range" id="rand-depth-slider" min="10" max="180" value="82" oninput="document.getElementById('rand-depth-val').textContent = this.value + ' cm'" style="width:100%; accent-color:var(--neon-cyan);">
+              <span id="rand-depth-val" style="font-family:var(--font-tech); color:#fff; font-size:13px; font-weight:bold;">82 cm</span>
+            </div>
+            <div style="background:rgba(0,0,0,0.3); padding:10px; border-radius:6px; border:1px solid var(--border-subtle);">
+              <label style="font-size:11px; color:var(--text-dim); display:block; margin-bottom:4px;">Simulated Drain Stress (%):</label>
+              <input type="range" id="rand-drain-slider" min="20" max="100" value="88" oninput="document.getElementById('rand-drain-val').textContent = this.value + '%'" style="width:100%; accent-color:var(--neon-cyan);">
+              <span id="rand-drain-val" style="font-family:var(--font-tech); color:#fff; font-size:13px; font-weight:bold;">88%</span>
+            </div>
+          </div>
+
+          <div style="display:flex; gap:10px; flex-wrap:wrap; margin-bottom:14px;">
+            <button onclick="triggerRandomStressTest(false)" class="btn-primary" style="flex:1; min-width:200px;">
+              🎲 INJECT RANDOM CLOUDBURST & RUN FULL SIMULATION
+            </button>
+            <button onclick="triggerRandomStressTest(true)" class="btn-secondary" style="border-color:#ff1744; color:#ff1744;">
+              ⚠️ INJECT RANDOM FALSE / NOISE REPORT (TEST CONFIDENCE FILTER)
+            </button>
+          </div>
+
+          <!-- Dynamic Output Card from Randomization -->
+          <div id="random-stress-results" style="display:none; background:rgba(0,0,0,0.45); border:1px solid var(--neon-cyan); border-radius:8px; padding:12px; font-size:12px;">
+            <!-- Populated via triggerRandomStressTest -->
+          </div>
+        </div>
+
+        <div class="control-room-grid">
+          
+          <!-- Control Room Incidents Board -->
+          <div class="side-card">
+            <div class="side-card-header">
+              <span>🏢 MUNICIPAL DISPATCH & INCIDENT CONTROL ROOM</span>
+              <span class="badge-tag critical">SUPERVISOR VIEW</span>
+            </div>
+            <p style="font-size: 12px; color: var(--text-muted); margin-bottom: 12px;">
+              Authorized controllers can monitor ongoing flood casualties, override vehicle assignments, and track triage progress.
+            </p>
+            <div id="control-room-incidents">
+              <!-- Populated dynamically -->
+            </div>
+          </div>
+
+          <!-- Fast Dispatch Simulation Controls -->
+          <div class="side-card">
+            <div class="side-card-header">
+              <span>🎮 DISPATCH SIMULATION ACTIONS</span>
+            </div>
+            <p style="font-size: 12px; color: var(--text-muted); margin-bottom: 14px;">
+              Simulate unit state transitions in real time for training and demonstration.
+            </p>
+
+            <div style="display: flex; flex-direction: column; gap: 8px;">
+              <button onclick="fetch('/api/dispatch-simulation', {method:'POST', headers:{'Content-Type':'application/json'}, body:JSON.stringify({resource_id:'A-07', status:'DISPATCHED'})}).then(()=>window.App.refreshData())" class="btn-secondary">
+                1. Set Unit A-07 to DISPATCHED
+              </button>
+              <button onclick="fetch('/api/dispatch-simulation', {method:'POST', headers:{'Content-Type':'application/json'}, body:JSON.stringify({resource_id:'A-07', status:'EN ROUTE'})}).then(()=>window.App.refreshData())" class="btn-secondary">
+                2. Set Unit A-07 to EN ROUTE
+              </button>
+              <button onclick="fetch('/api/dispatch-simulation', {method:'POST', headers:{'Content-Type':'application/json'}, body:JSON.stringify({resource_id:'A-07', status:'ARRIVED'})}).then(()=>window.App.refreshData())" class="btn-secondary">
+                3. Set Unit A-07 to ARRIVED On-Site
+              </button>
+              <button onclick="fetch('/api/dispatch-simulation', {method:'POST', headers:{'Content-Type':'application/json'}, body:JSON.stringify({resource_id:'A-07', status:'AVAILABLE', request_code:'#1027'})}).then(()=>window.App.refreshData())" class="btn-secondary" style="border-color:#00e676; color:#00e676;">
+                4. Mark Incident RESOLVED & Unit Available
+              </button>
+            </div>
+
+            <div style="margin-top: 16px; font-size: 11px; color: #ffab00; background: rgba(255,171,0,0.1); padding: 8px; border-radius: 6px;">
+              "Ambulance dispatch simulation — not connected to real emergency services."
+            </div>
+          </div>
+
+        </div>
+
+        <!-- BOTTOM: Official Dispatch Receipts & Telephony Outbox (New) -->
+        <div style="display:grid; grid-template-columns:1fr 1fr; gap:16px; margin-top:20px;">
+          
+          <!-- Dispatch Acknowledgment Receipts Ledger -->
+          <div class="side-card">
+            <div class="side-card-header">
+              <span>📄 OFFICIAL DISPATCH RECEIPTS & CITIZEN ACKNOWLEDGMENTS</span>
+              <span class="badge-tag" style="background:rgba(0,230,118,0.2); color:#00e676;">PRINT VERIFIED</span>
+            </div>
+            <p style="font-size:12px; color:var(--text-muted); margin-bottom:12px;">
+              All confirmed dispatches generate official digital print receipts with verifiable tokens, hospital details, and ETA.
+            </p>
+            <div id="acknowledgments-feed" style="display:flex; flex-direction:column; gap:8px; max-height:280px; overflow-y:auto;">
+              <!-- Populated dynamically via App.refreshData -->
+            </div>
+          </div>
+
+          <!-- Automated Calls & SMS Transmission Outbox -->
+          <div class="side-card">
+            <div class="side-card-header">
+              <span>📞 AUTOMATED EMERGENCY CALLS & SMS TRANSMISSION OUTBOX</span>
+              <span class="badge-tag" style="background:rgba(0,229,255,0.2); color:var(--neon-cyan);">LIVE TELEPHONY</span>
+            </div>
+            <p style="font-size:12px; color:var(--text-muted); margin-bottom:12px;">
+              Real-time audit log of automated calls and SMS notifications sent to flood victims and family contacts.
+            </p>
+            <div id="telephony-feed" style="display:flex; flex-direction:column; gap:8px; max-height:280px; overflow-y:auto;">
+              <!-- Populated dynamically via App.refreshData -->
+            </div>
+          </div>
+
+        </div>
+
+      </section>
+
+    </main>
+
+    <!-- Bottom Disclaimer & Support Footer -->
+    <footer class="disclaimer-banner">
+      <div>
+        <span>⚖️ <strong>DISCLAIMER:</strong> {{ disclaimer }}</span>
+      </div>
+      <div>
+        <span>Customer Support Helpline: <strong>{{ support_phone }}</strong> | Email: <strong>{{ support_email }}</strong></span>
+      </div>
+    </footer>
+
+  </div>
+
+  <!-- Leaflet JS -->
+  <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js" integrity="sha256-20nQCchB9co0qIjJZRGuk2/Z9VM+kNiyxNV1lvTlZBo=" crossorigin=""></script>
+  
+  <!-- App Modules -->
+  <script src="{{ url_for('static', filename='js/background_fx.js') }}"></script>
+  <script src="{{ url_for('static', filename='js/map.js') }}"></script>
+  <script src="{{ url_for('static', filename='js/analytics.js') }}"></script>
+  <script src="{{ url_for('static', filename='js/simulation.js') }}"></script>
+  <script src="{{ url_for('static', filename='js/app.js') }}"></script>
+</body>
+</html>

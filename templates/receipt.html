@@ -1,0 +1,663 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Official Dispatch Confirmation Receipt - {{ ack.ack_code }} | ResilientUrban</title>
+    <link rel="icon" type="image/png" href="/static/images/app_icon_96.png">
+    <link rel="manifest" href="/manifest.json">
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800;900&family=JetBrains+Mono:wght@400;600;700&display=swap" rel="stylesheet">
+    <style>
+        :root {
+            --primary: #0284c7;
+            --primary-dark: #0369a1;
+            --danger: #dc2626;
+            --success: #16a34a;
+            --warning: #d97706;
+            --text-dark: #0f172a;
+            --text-muted: #475569;
+            --bg-paper: #ffffff;
+            --border: #cbd5e1;
+        }
+
+        * {
+            box-sizing: border-box;
+            margin: 0;
+            padding: 0;
+        }
+
+        body {
+            font-family: 'Inter', -apple-system, BlinkMacSystemFont, sans-serif;
+            background: #0b1120;
+            color: var(--text-dark);
+            min-height: 100vh;
+            padding: 2rem 1rem;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+        }
+
+        .receipt-action-bar {
+            width: 100%;
+            max-width: 800px;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 1.5rem;
+            flex-wrap: wrap;
+            gap: 1rem;
+        }
+
+        .btn {
+            display: inline-flex;
+            align-items: center;
+            gap: 0.5rem;
+            padding: 0.75rem 1.25rem;
+            border-radius: 8px;
+            font-weight: 600;
+            font-size: 0.95rem;
+            text-decoration: none;
+            cursor: pointer;
+            border: none;
+            transition: all 0.2s ease;
+        }
+
+        .btn-print {
+            background: #2563eb;
+            color: #ffffff;
+            box-shadow: 0 4px 14px rgba(37, 99, 235, 0.4);
+        }
+        .btn-print:hover {
+            background: #1d4ed8;
+            transform: translateY(-1px);
+        }
+
+        .btn-call {
+            background: #16a34a;
+            color: #ffffff;
+        }
+        .btn-call:hover {
+            background: #15803d;
+        }
+
+        .btn-back {
+            background: #334155;
+            color: #f1f5f9;
+        }
+        .btn-back:hover {
+            background: #475569;
+        }
+
+        /* The Printable Paper Container */
+        .receipt-sheet {
+            width: 100%;
+            max-width: 800px;
+            background: var(--bg-paper);
+            border-radius: 12px;
+            box-shadow: 0 20px 40px rgba(0, 0, 0, 0.4);
+            padding: 2.5rem;
+            position: relative;
+            border-top: 8px solid #0284c7;
+        }
+
+        .watermark {
+            position: absolute;
+            top: 50%;
+            left: 50%;
+            transform: translate(-50%, -50%) rotate(-30deg);
+            font-size: 5rem;
+            font-weight: 900;
+            color: rgba(2, 132, 199, 0.05);
+            pointer-events: none;
+            text-transform: uppercase;
+            white-space: nowrap;
+            letter-spacing: 0.5rem;
+            z-index: 1;
+        }
+
+        .receipt-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: flex-start;
+            border-bottom: 2px solid var(--border);
+            padding-bottom: 1.5rem;
+            margin-bottom: 1.5rem;
+            position: relative;
+            z-index: 2;
+        }
+
+        .gov-brand {
+            display: flex;
+            align-items: center;
+            gap: 1.25rem;
+        }
+
+        .gov-emblem {
+            width: 60px;
+            height: 60px;
+            background: linear-gradient(135deg, #0284c7, #0369a1);
+            border-radius: 50%;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            color: white;
+            font-size: 1.75rem;
+            font-weight: 800;
+            box-shadow: 0 4px 10px rgba(2, 132, 199, 0.3);
+        }
+
+        .gov-titles h2 {
+            font-size: 1.25rem;
+            font-weight: 800;
+            color: #0f172a;
+            text-transform: uppercase;
+            letter-spacing: 0.03em;
+        }
+
+        .gov-titles p {
+            font-size: 0.82rem;
+            color: var(--text-muted);
+            margin-top: 0.2rem;
+        }
+
+        .receipt-badge-status {
+            text-align: right;
+        }
+
+        .status-pill {
+            display: inline-block;
+            background: #dcfce7;
+            color: #15803d;
+            border: 1px solid #86efac;
+            padding: 0.35rem 0.85rem;
+            border-radius: 9999px;
+            font-size: 0.85rem;
+            font-weight: 700;
+            letter-spacing: 0.05em;
+            text-transform: uppercase;
+        }
+
+        .ack-number {
+            font-family: 'JetBrains Mono', monospace;
+            font-size: 1.1rem;
+            font-weight: 700;
+            color: #0284c7;
+            margin-top: 0.4rem;
+        }
+
+        .doc-title-bar {
+            text-align: center;
+            background: #f8fafc;
+            border: 1px dashed var(--border);
+            border-radius: 8px;
+            padding: 0.75rem;
+            margin-bottom: 1.75rem;
+            position: relative;
+            z-index: 2;
+        }
+
+        .doc-title-bar h1 {
+            font-size: 1.1rem;
+            font-weight: 800;
+            color: #1e293b;
+            letter-spacing: 0.05em;
+            text-transform: uppercase;
+        }
+
+        .doc-title-bar span {
+            font-size: 0.8rem;
+            color: var(--text-muted);
+        }
+
+        /* Two Column Grid */
+        .receipt-grid {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 1.5rem;
+            margin-bottom: 1.5rem;
+            position: relative;
+            z-index: 2;
+        }
+
+        .section-box {
+            border: 1px solid var(--border);
+            border-radius: 8px;
+            padding: 1.25rem;
+            background: #ffffff;
+        }
+
+        .section-title {
+            font-size: 0.85rem;
+            font-weight: 700;
+            text-transform: uppercase;
+            letter-spacing: 0.05em;
+            color: #0284c7;
+            border-bottom: 1px solid #f1f5f9;
+            padding-bottom: 0.5rem;
+            margin-bottom: 0.85rem;
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+        }
+
+        .data-row {
+            display: flex;
+            justify-content: space-between;
+            align-items: flex-start;
+            padding: 0.35rem 0;
+            font-size: 0.9rem;
+            border-bottom: 1px dotted #f1f5f9;
+        }
+        .data-row:last-child {
+            border-bottom: none;
+        }
+
+        .data-label {
+            color: var(--text-muted);
+            font-weight: 500;
+            font-size: 0.85rem;
+        }
+
+        .data-val {
+            font-weight: 600;
+            color: #0f172a;
+            text-align: right;
+            max-width: 65%;
+        }
+
+        .data-val.mono {
+            font-family: 'JetBrains Mono', monospace;
+            font-size: 0.85rem;
+        }
+
+        .highlight-val {
+            color: #dc2626;
+            font-weight: 700;
+        }
+
+        /* Full Width Dispatch Card */
+        .dispatch-banner {
+            background: linear-gradient(135deg, #f0fdf4, #dcfce7);
+            border: 2px solid #86efac;
+            border-radius: 8px;
+            padding: 1.25rem;
+            margin-bottom: 1.5rem;
+            position: relative;
+            z-index: 2;
+        }
+
+        .dispatch-banner h3 {
+            color: #166534;
+            font-size: 1.05rem;
+            font-weight: 800;
+            margin-bottom: 0.6rem;
+            display: flex;
+            align-items: center;
+            gap: 0.5rem;
+        }
+
+        .dispatch-meta-grid {
+            display: grid;
+            grid-template-columns: repeat(4, 1fr);
+            gap: 1rem;
+            margin-top: 0.85rem;
+        }
+
+        .meta-stat {
+            background: white;
+            border-radius: 6px;
+            padding: 0.6rem;
+            border: 1px solid #bbf7d0;
+            text-align: center;
+        }
+
+        .meta-stat .stat-label {
+            font-size: 0.72rem;
+            text-transform: uppercase;
+            font-weight: 600;
+            color: #15803d;
+        }
+
+        .meta-stat .stat-val {
+            font-size: 1.15rem;
+            font-weight: 800;
+            color: #0f172a;
+            margin-top: 0.2rem;
+        }
+
+        /* Instructions block */
+        .safety-rules {
+            background: #fffbeb;
+            border: 1px solid #fde68a;
+            border-radius: 8px;
+            padding: 1.25rem;
+            margin-bottom: 1.5rem;
+            position: relative;
+            z-index: 2;
+        }
+
+        .safety-rules h4 {
+            color: #92400e;
+            font-size: 0.9rem;
+            font-weight: 700;
+            text-transform: uppercase;
+            margin-bottom: 0.5rem;
+        }
+
+        .safety-rules ol {
+            padding-left: 1.25rem;
+            font-size: 0.85rem;
+            color: #78350f;
+            line-height: 1.5;
+        }
+
+        .safety-rules li {
+            margin-bottom: 0.25rem;
+        }
+
+        /* Verification Footer */
+        .verification-footer {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            border-top: 2px solid var(--border);
+            padding-top: 1.25rem;
+            position: relative;
+            z-index: 2;
+            flex-wrap: wrap;
+            gap: 1rem;
+        }
+
+        .qr-seal-box {
+            display: flex;
+            align-items: center;
+            gap: 1rem;
+        }
+
+        .qr-placeholder {
+            width: 75px;
+            height: 75px;
+            background: white;
+            border: 2px solid #0f172a;
+            padding: 4px;
+            display: flex;
+            flex-direction: column;
+            justify-content: center;
+            align-items: center;
+            box-shadow: 0 2px 5px rgba(0,0,0,0.1);
+        }
+
+        .qr-matrix {
+            width: 100%;
+            height: 100%;
+            background-image: 
+                radial-gradient(#0f172a 2px, transparent 2px),
+                radial-gradient(#0f172a 2px, transparent 2px);
+            background-size: 8px 8px;
+            background-position: 0 0, 4px 4px;
+            border: 1px solid #64748b;
+        }
+
+        .seal-info {
+            font-size: 0.78rem;
+            color: var(--text-muted);
+            line-height: 1.4;
+        }
+
+        .seal-info strong {
+            color: #0f172a;
+            font-family: 'JetBrains Mono', monospace;
+        }
+
+        .signature-block {
+            text-align: right;
+        }
+
+        .sig-line {
+            width: 180px;
+            border-bottom: 1px solid #0f172a;
+            margin-bottom: 0.3rem;
+            display: inline-block;
+        }
+
+        .sig-name {
+            font-size: 0.85rem;
+            font-weight: 700;
+            color: #0f172a;
+        }
+
+        .sig-title {
+            font-size: 0.75rem;
+            color: var(--text-muted);
+        }
+
+        /* Print Media Styles */
+        @media print {
+            body {
+                background: white !important;
+                padding: 0 !important;
+                color: black !important;
+            }
+
+            .receipt-action-bar {
+                display: none !important;
+            }
+
+            .receipt-sheet {
+                box-shadow: none !important;
+                border-top: 4px solid black !important;
+                padding: 1rem !important;
+                max-width: 100% !important;
+            }
+
+            .dispatch-banner {
+                background: #f0fdf4 !important;
+                border: 1px solid #16a34a !important;
+                -webkit-print-color-adjust: exact !important;
+                print-color-adjust: exact !important;
+            }
+
+            .status-pill {
+                border: 1px solid black !important;
+                color: black !important;
+            }
+        }
+
+        @media (max-width: 640px) {
+            .receipt-grid {
+                grid-template-columns: 1fr;
+            }
+            .dispatch-meta-grid {
+                grid-template-columns: 1fr 1fr;
+            }
+            .verification-footer {
+                flex-direction: column;
+                align-items: flex-start;
+            }
+            .signature-block {
+                text-align: left;
+            }
+        }
+    </style>
+</head>
+<body>
+
+    <div class="receipt-action-bar">
+        <a href="/citizen" class="btn btn-back">
+            <span>&larr;</span> Back to Citizen Portal
+        </a>
+        <div style="display:flex; gap:0.75rem; flex-wrap:wrap;">
+            <a href="tel:{{ ack.responder_phone }}" class="btn btn-call">
+                <span>&phone;</span> Call Dispatched Unit ({{ ack.responder_phone }})
+            </a>
+            <button onclick="window.print()" class="btn btn-print">
+                <span>&#128424;</span> Print / Save Receipt (PDF)
+            </button>
+        </div>
+    </div>
+
+    <div class="receipt-sheet">
+        <div class="watermark">BBMP DISPATCH VERIFIED</div>
+
+        <!-- Header -->
+        <div class="receipt-header">
+            <div class="gov-brand">
+                <div class="gov-emblem">RU</div>
+                <div class="gov-titles">
+                    <h2>Municipal Disaster Response Directorate</h2>
+                    <p>Bruhat Bengaluru Mahanagara Palike &bull; SDMA Flood Action Network</p>
+                    <p style="font-size:0.75rem; color:#64748b;">Central Emergency Ops: 8431535534 &bull; civora@gmail.com</p>
+                </div>
+            </div>
+            <div class="receipt-badge-status">
+                <div class="status-pill">&#10004; {{ ack.status }}</div>
+                <div class="ack-number">{{ ack.ack_code }}</div>
+                <div style="font-size:0.75rem; color:#64748b; margin-top:2px;">Issued: {{ ack.timestamp }}</div>
+            </div>
+        </div>
+
+        <!-- Doc Title -->
+        <div class="doc-title-bar">
+            <h1>Official Citizen Rescue Acknowledgment & Dispatch Proof</h1>
+            <span>Authenticated Digital Confirmation Document for Flood Evacuation</span>
+        </div>
+
+        <!-- Confirmed Dispatch Highlight Banner -->
+        <div class="dispatch-banner">
+            <h3>
+                <span>&#128657;</span> HOSPITAL & EMERGENCY FLEET DISPATCH CONFIRMED
+            </h3>
+            <p style="font-size:0.88rem; color:#14532d; line-height:1.4;">
+                The central municipal dispatch desk has paired your SOS triage with an active emergency hospital response team. Paramedics and flood wading crew are en route.
+            </p>
+            <div class="dispatch-meta-grid">
+                <div class="meta-stat">
+                    <div class="stat-label">Assigned Unit</div>
+                    <div class="stat-val" style="color:#0369a1; font-size:1rem;">{{ ack.assigned_unit }}</div>
+                </div>
+                <div class="meta-stat">
+                    <div class="stat-label">Hospital Base</div>
+                    <div class="stat-val" style="font-size:0.82rem; font-weight:700;">{{ ack.hospital_name }}</div>
+                </div>
+                <div class="meta-stat">
+                    <div class="stat-label">Estimated Arrival</div>
+                    <div class="stat-val" style="color:#16a34a;">{{ ack.eta_minutes }} MINS</div>
+                </div>
+                <div class="meta-stat">
+                    <div class="stat-label">Direct Contact</div>
+                    <div class="stat-val" style="font-size:0.95rem;">
+                        <a href="tel:{{ ack.responder_phone }}" style="color:#0284c7; text-decoration:none;">{{ ack.responder_phone }}</a>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Two Column Data Details -->
+        <div class="receipt-grid">
+            <!-- Citizen & Location Block -->
+            <div class="section-box">
+                <div class="section-title">
+                    <span>Citizen & Location Coordinates</span>
+                    <span style="font-size:0.75rem; color:#64748b;">GPS Verified</span>
+                </div>
+                <div class="data-row">
+                    <span class="data-label">Request Tracking ID</span>
+                    <span class="data-val mono">{{ ack.request_code }}</span>
+                </div>
+                <div class="data-row">
+                    <span class="data-label">Citizen Name</span>
+                    <span class="data-val">{{ ack.citizen_name }}</span>
+                </div>
+                <div class="data-row">
+                    <span class="data-label">Citizen Phone</span>
+                    <span class="data-val mono">{{ ack.citizen_phone }}</span>
+                </div>
+                <div class="data-row">
+                    <span class="data-label">Family Contact</span>
+                    <span class="data-val">{{ ack.family_contact_name or 'Sunita Kumar (Spouse)' }}</span>
+                </div>
+                <div class="data-row">
+                    <span class="data-label">Family Phone</span>
+                    <span class="data-val mono">{{ ack.family_contact_phone or '8431535534' }}</span>
+                </div>
+                <div class="data-row">
+                    <span class="data-label">Jurisdiction Ward</span>
+                    <span class="data-val">{{ ack.ward }}</span>
+                </div>
+                <div class="data-row">
+                    <span class="data-label">GPS Latitude/Longitude</span>
+                    <span class="data-val mono">{{ ack.latitude }}, {{ ack.longitude }}</span>
+                </div>
+            </div>
+
+            <!-- Route & Logistics Block -->
+            <div class="section-box">
+                <div class="section-title">
+                    <span>Assigned Route & Navigation Corridor</span>
+                    <span style="font-size:0.75rem; color:#16a34a;">Flood-Bypass Active</span>
+                </div>
+                <div class="data-row">
+                    <span class="data-label">Dispatch Corridor</span>
+                    <span class="data-val">{{ ack.cleared_route }}</span>
+                </div>
+                <div class="data-row">
+                    <span class="data-label">Inundated Road Avoided</span>
+                    <span class="data-val highlight-val">Koramangala 80 Ft Rd (Blocked)</span>
+                </div>
+                <div class="data-row">
+                    <span class="data-label">Reroute Optimization</span>
+                    <span class="data-val">Dijkstra Safest Elevated Path</span>
+                </div>
+                <div class="data-row">
+                    <span class="data-label">Vehicle Clearance</span>
+                    <span class="data-val">4x4 Heavy Wading Snorkel</span>
+                </div>
+                <div class="data-row">
+                    <span class="data-label">Family Notification</span>
+                    <span class="data-val" style="color:#16a34a; font-weight:700;">&#10004; Automated SMS Sent</span>
+                </div>
+                <div class="data-row">
+                    <span class="data-label">Helpline Audio Call</span>
+                    <span class="data-val" style="color:#16a34a; font-weight:700;">&#10004; Triggered</span>
+                </div>
+            </div>
+        </div>
+
+        <!-- Survival & Wait Instructions -->
+        <div class="safety-rules">
+            <h4>Instructions For Resident While Awaiting Rescue</h4>
+            <ol>
+                <li><strong>Remain at Current Elevation:</strong> Do not attempt to walk through submerged drainage canals or flooded streets. Wait on the first floor or rooftop if possible.</li>
+                <li><strong>Keep Phone Available:</strong> The ambulance driver will call you from <strong>{{ ack.responder_phone }}</strong> when within 200 meters.</li>
+                <li><strong>Electrical Hazard Precaution:</strong> Shut off main circuit breakers immediately if floodwaters touch exterior meter boxes.</li>
+                <li><strong>Signal Approaching Units:</strong> Wave a bright cloth, white shirt, or phone flashlight from the window/balcony to guide incoming rescuers.</li>
+            </ol>
+        </div>
+
+        <!-- Verification Seal & Signatures -->
+        <div class="verification-footer">
+            <div class="qr-seal-box">
+                <div class="qr-placeholder" title="Field Verification QR Code">
+                    <div class="qr-matrix"></div>
+                </div>
+                <div class="seal-info">
+                    <div>Digital Verification Hash:</div>
+                    <strong>{{ ack.verification_seal }}</strong>
+                    <div style="font-size:0.72rem; color:#64748b; margin-top:2px;">
+                        Token: {{ ack.qr_token }} &bull; Valid for Disaster ID INC-1027
+                    </div>
+                </div>
+            </div>
+
+            <div class="signature-block">
+                <div class="sig-line"></div>
+                <div class="sig-name">MUNICIPAL INCIDENT COMMANDER</div>
+                <div class="sig-title">Disaster Response Network Authority</div>
+            </div>
+        </div>
+    </div>
+
+</body>
+</html>

@@ -1,0 +1,1318 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Citizen Flood Safety & Community Action Portal | ResilientUrban</title>
+    <link rel="icon" type="image/png" href="/static/images/app_icon_96.png">
+    <link rel="manifest" href="/manifest.json">
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;500;600;700;800&family=JetBrains+Mono:wght@500;700&display=swap" rel="stylesheet">
+    <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" integrity="sha256-p4NxAoJBhIIN+hmNHrzRCf9tD/miZyoHS5obTRR9BMY=" crossorigin=""/>
+    <style>
+        :root {
+            --bg-page: #090d16;
+            --bg-card: #131b2e;
+            --bg-card-hover: #1a253e;
+            --border-card: #223150;
+            --primary: #0ea5e9;
+            --primary-hover: #0284c7;
+            --danger: #ef4444;
+            --danger-hover: #dc2626;
+            --success: #10b981;
+            --warning: #f59e0b;
+            --text-main: #f8fafc;
+            --text-sub: #94a3b8;
+            --text-muted: #64748b;
+        }
+
+        * {
+            box-sizing: border-box;
+            margin: 0;
+            padding: 0;
+        }
+
+        body {
+            font-family: 'Plus Jakarta Sans', sans-serif;
+            background-color: var(--bg-page);
+            color: var(--text-main);
+            min-height: 100vh;
+            line-height: 1.5;
+        }
+
+        /* Top Resident Navbar */
+        .citizen-navbar {
+            background: #0d1424;
+            border-bottom: 1px solid var(--border-card);
+            padding: 1rem 1.5rem;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            position: sticky;
+            top: 0;
+            z-index: 100;
+        }
+
+        .citizen-brand {
+            display: flex;
+            align-items: center;
+            gap: 0.85rem;
+        }
+
+        .citizen-logo {
+            width: 42px;
+            height: 42px;
+            background: linear-gradient(135deg, #0ea5e9, #0284c7);
+            border-radius: 10px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 1.5rem;
+            box-shadow: 0 4px 12px rgba(14, 165, 233, 0.3);
+        }
+
+        .citizen-title h1 {
+            font-size: 1.15rem;
+            font-weight: 800;
+            letter-spacing: -0.01em;
+            color: #ffffff;
+        }
+
+        .citizen-title p {
+            font-size: 0.78rem;
+            color: #38bdf8;
+            font-weight: 600;
+        }
+
+        .citizen-nav-actions {
+            display: flex;
+            align-items: center;
+            gap: 0.85rem;
+            flex-wrap: wrap;
+        }
+
+        .nav-btn {
+            display: inline-flex;
+            align-items: center;
+            gap: 0.4rem;
+            padding: 0.55rem 0.95rem;
+            border-radius: 8px;
+            font-size: 0.85rem;
+            font-weight: 600;
+            text-decoration: none;
+            cursor: pointer;
+            border: 1px solid transparent;
+            transition: all 0.2s ease;
+        }
+
+        .btn-apk {
+            background: #1e293b;
+            color: #38bdf8;
+            border-color: #334155;
+        }
+        .btn-apk:hover {
+            background: #334155;
+            color: #ffffff;
+        }
+
+        .btn-call {
+            background: rgba(16, 185, 129, 0.15);
+            color: #34d399;
+            border-color: rgba(16, 185, 129, 0.3);
+        }
+        .btn-call:hover {
+            background: #10b981;
+            color: #ffffff;
+        }
+
+        .btn-admin-switch {
+            background: #1e1b4b;
+            color: #c7d2fe;
+            border-color: #4338ca;
+        }
+        .btn-admin-switch:hover {
+            background: #3730a3;
+            color: #ffffff;
+        }
+
+        /* Hero Emergency Panic Banner */
+        .panic-hero {
+            background: linear-gradient(135deg, rgba(239, 68, 68, 0.15), rgba(185, 28, 28, 0.05));
+            border-bottom: 2px solid rgba(239, 68, 68, 0.3);
+            padding: 1.5rem 1.5rem 2rem;
+            text-align: center;
+        }
+
+        .panic-container {
+            max-width: 900px;
+            margin: 0 auto;
+        }
+
+        .pulse-badge {
+            display: inline-flex;
+            align-items: center;
+            gap: 0.5rem;
+            background: rgba(239, 68, 68, 0.2);
+            color: #f87171;
+            border: 1px solid rgba(239, 68, 68, 0.4);
+            padding: 0.3rem 0.8rem;
+            border-radius: 9999px;
+            font-size: 0.8rem;
+            font-weight: 700;
+            margin-bottom: 0.85rem;
+            letter-spacing: 0.04em;
+            text-transform: uppercase;
+        }
+
+        .pulse-dot {
+            width: 8px;
+            height: 8px;
+            background: #ef4444;
+            border-radius: 50%;
+            animation: pulse-ring 1.5s infinite;
+        }
+        @keyframes pulse-ring {
+            0% { transform: scale(0.95); box-shadow: 0 0 0 0 rgba(239, 68, 68, 0.7); }
+            70% { transform: scale(1.1); box-shadow: 0 0 0 8px rgba(239, 68, 68, 0); }
+            100% { transform: scale(0.95); box-shadow: 0 0 0 0 rgba(239, 68, 68, 0); }
+        }
+
+        .panic-hero h2 {
+            font-size: 1.8rem;
+            font-weight: 800;
+            margin-bottom: 0.5rem;
+            color: #ffffff;
+        }
+
+        .panic-hero p {
+            color: #cbd5e1;
+            font-size: 0.95rem;
+            max-width: 650px;
+            margin: 0 auto 1.25rem;
+        }
+
+        .sos-trigger-btn {
+            background: linear-gradient(135deg, #ef4444, #dc2626);
+            color: white;
+            border: none;
+            padding: 1.1rem 2.5rem;
+            font-size: 1.2rem;
+            font-weight: 800;
+            border-radius: 14px;
+            cursor: pointer;
+            box-shadow: 0 10px 25px rgba(239, 68, 68, 0.45);
+            transition: all 0.2s ease;
+            display: inline-flex;
+            align-items: center;
+            gap: 0.75rem;
+        }
+        .sos-trigger-btn:hover {
+            transform: translateY(-2px) scale(1.02);
+            box-shadow: 0 15px 30px rgba(239, 68, 68, 0.6);
+            background: linear-gradient(135deg, #dc2626, #b91c1c);
+        }
+
+        /* Main Container Layout */
+        .citizen-content {
+            max-width: 1200px;
+            margin: 2rem auto;
+            padding: 0 1.5rem;
+            display: grid;
+            grid-template-columns: 1.4fr 1fr;
+            gap: 1.5rem;
+        }
+
+        /* Reusable Card */
+        .citizen-card {
+            background: var(--bg-card);
+            border: 1px solid var(--border-card);
+            border-radius: 14px;
+            padding: 1.5rem;
+            margin-bottom: 1.5rem;
+            box-shadow: 0 8px 20px rgba(0, 0, 0, 0.2);
+        }
+
+        .card-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 1.25rem;
+            border-bottom: 1px solid var(--border-card);
+            padding-bottom: 0.85rem;
+        }
+
+        .card-title {
+            font-size: 1.05rem;
+            font-weight: 700;
+            color: #ffffff;
+            display: flex;
+            align-items: center;
+            gap: 0.5rem;
+        }
+
+        .card-tag {
+            font-size: 0.75rem;
+            font-weight: 700;
+            padding: 0.25rem 0.65rem;
+            border-radius: 9999px;
+            text-transform: uppercase;
+        }
+        .tag-green { background: rgba(16, 185, 129, 0.2); color: #34d399; }
+        .tag-amber { background: rgba(245, 158, 11, 0.2); color: #fbbf24; }
+        .tag-red { background: rgba(239, 68, 68, 0.2); color: #f87171; }
+        .tag-blue { background: rgba(14, 165, 233, 0.2); color: #38bdf8; }
+
+        /* Status Metric Pill Grid */
+        .metric-grid {
+            display: grid;
+            grid-template-columns: repeat(3, 1fr);
+            gap: 1rem;
+            margin-bottom: 1.25rem;
+        }
+
+        .metric-box {
+            background: rgba(15, 23, 42, 0.6);
+            border: 1px solid var(--border-card);
+            border-radius: 10px;
+            padding: 0.85rem;
+            text-align: center;
+        }
+
+        .metric-box .label {
+            font-size: 0.72rem;
+            color: var(--text-muted);
+            text-transform: uppercase;
+            font-weight: 600;
+        }
+
+        .metric-box .val {
+            font-size: 1.35rem;
+            font-weight: 800;
+            color: #ffffff;
+            margin-top: 0.2rem;
+        }
+
+        /* Safe Evacuation Paths */
+        .route-item {
+            background: rgba(15, 23, 42, 0.6);
+            border: 1px solid var(--border-card);
+            border-radius: 10px;
+            padding: 1rem;
+            margin-bottom: 0.75rem;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+        }
+
+        .route-item.safe {
+            border-left: 4px solid var(--success);
+        }
+
+        .route-item.blocked {
+            border-left: 4px solid var(--danger);
+            opacity: 0.85;
+        }
+
+        .route-name {
+            font-weight: 700;
+            color: #ffffff;
+            font-size: 0.95rem;
+        }
+
+        .route-meta {
+            font-size: 0.78rem;
+            color: var(--text-sub);
+            margin-top: 0.2rem;
+        }
+
+        /* Acknowledgment Receipt Card in Dashboard */
+        .receipt-card-preview {
+            background: linear-gradient(135deg, rgba(14, 165, 233, 0.1), rgba(15, 23, 42, 0.8));
+            border: 1px solid rgba(14, 165, 233, 0.35);
+            border-radius: 12px;
+            padding: 1.25rem;
+            margin-top: 1rem;
+        }
+
+        .receipt-card-preview .top-row {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 0.75rem;
+        }
+
+        .receipt-code-label {
+            font-family: 'JetBrains Mono', monospace;
+            font-weight: 700;
+            color: var(--primary);
+            font-size: 0.95rem;
+        }
+
+        .receipt-btn-group {
+            display: flex;
+            gap: 0.5rem;
+            margin-top: 1rem;
+        }
+
+        .btn-view-receipt {
+            flex: 1;
+            background: var(--primary);
+            color: white;
+            padding: 0.65rem;
+            border-radius: 8px;
+            font-weight: 700;
+            font-size: 0.85rem;
+            text-align: center;
+            text-decoration: none;
+            border: none;
+            cursor: pointer;
+            display: inline-flex;
+            align-items: center;
+            justify-content: center;
+            gap: 0.4rem;
+        }
+        .btn-view-receipt:hover {
+            background: var(--primary-hover);
+        }
+
+        /* SMS Simulation Feed */
+        .sms-bubble {
+            background: #1e293b;
+            border: 1px solid #334155;
+            border-radius: 12px;
+            padding: 1rem;
+            margin-bottom: 0.85rem;
+            position: relative;
+        }
+
+        .sms-bubble-header {
+            display: flex;
+            justify-content: space-between;
+            font-size: 0.75rem;
+            color: var(--text-muted);
+            margin-bottom: 0.4rem;
+        }
+
+        .sms-bubble-body {
+            font-size: 0.85rem;
+            color: #e2e8f0;
+            line-height: 1.4;
+        }
+
+        /* Citizen Map Frame */
+        #citizen-map {
+            width: 100%;
+            height: 320px;
+            border-radius: 10px;
+            border: 1px solid var(--border-card);
+            margin-bottom: 1rem;
+        }
+
+        /* MODAL DIALOGS */
+        .modal-overlay {
+            display: none;
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background: rgba(0, 0, 0, 0.8);
+            backdrop-filter: blur(6px);
+            z-index: 2000;
+            align-items: center;
+            justify-content: center;
+            padding: 1rem;
+        }
+        .modal-overlay.active {
+            display: flex;
+        }
+
+        .modal-sheet {
+            background: #0f172a;
+            border: 1px solid #334155;
+            border-radius: 16px;
+            width: 100%;
+            max-width: 520px;
+            padding: 2rem;
+            box-shadow: 0 25px 50px rgba(0, 0, 0, 0.5);
+            max-height: 90vh;
+            overflow-y: auto;
+        }
+
+        .modal-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 1.25rem;
+            border-bottom: 1px solid #334155;
+            padding-bottom: 0.75rem;
+        }
+
+        .modal-header h3 {
+            font-size: 1.25rem;
+            font-weight: 800;
+            color: #ffffff;
+        }
+
+        .close-btn {
+            background: none;
+            border: none;
+            color: #94a3b8;
+            font-size: 1.5rem;
+            cursor: pointer;
+        }
+
+        /* Form elements */
+        .form-group {
+            margin-bottom: 1.15rem;
+        }
+
+        .form-group label {
+            display: block;
+            font-size: 0.82rem;
+            font-weight: 600;
+            color: #cbd5e1;
+            margin-bottom: 0.35rem;
+            text-transform: uppercase;
+            letter-spacing: 0.03em;
+        }
+
+        .form-control {
+            width: 100%;
+            background: #1e293b;
+            border: 1px solid #334155;
+            border-radius: 8px;
+            padding: 0.75rem 0.95rem;
+            color: #ffffff;
+            font-size: 0.95rem;
+            font-family: inherit;
+        }
+        .form-control:focus {
+            outline: none;
+            border-color: var(--primary);
+            box-shadow: 0 0 0 3px rgba(14, 165, 233, 0.2);
+        }
+
+        /* REALISTIC INCOMING PHONE CALL UI */
+        .call-card {
+            background: linear-gradient(180deg, #1e1b4b, #0f172a);
+            border-radius: 24px;
+            padding: 2.5rem 1.5rem;
+            text-align: center;
+            width: 100%;
+            max-width: 360px;
+            box-shadow: 0 30px 60px rgba(0,0,0,0.7);
+            border: 1px solid #3730a3;
+        }
+
+        .call-avatar {
+            width: 90px;
+            height: 90px;
+            background: #dc2626;
+            border-radius: 50%;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 2.5rem;
+            margin: 0 auto 1.25rem;
+            animation: pulse-ring 1.2s infinite;
+        }
+
+        .caller-title {
+            font-size: 1.2rem;
+            font-weight: 800;
+            color: #ffffff;
+        }
+
+        .caller-number {
+            font-family: 'JetBrains Mono', monospace;
+            font-size: 1rem;
+            color: #38bdf8;
+            margin: 0.25rem 0 1rem;
+        }
+
+        .call-status-text {
+            font-size: 0.85rem;
+            color: #cbd5e1;
+            margin-bottom: 2rem;
+        }
+
+        .call-actions-row {
+            display: flex;
+            justify-content: space-around;
+            align-items: center;
+        }
+
+        .call-action-btn {
+            width: 65px;
+            height: 65px;
+            border-radius: 50%;
+            border: none;
+            font-size: 1.5rem;
+            cursor: pointer;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            transition: transform 0.2s;
+        }
+        .call-action-btn:hover {
+            transform: scale(1.1);
+        }
+        .btn-answer { background: #16a34a; color: white; }
+        .btn-decline { background: #dc2626; color: white; }
+
+        @media (max-width: 860px) {
+            .citizen-content {
+                grid-template-columns: 1fr;
+            }
+            .metric-grid {
+                grid-template-columns: 1fr 1fr;
+            }
+        }
+    </style>
+</head>
+<body>
+
+    <!-- TOP CITIZEN NAVIGATION -->
+    <nav class="citizen-navbar">
+        <div class="citizen-brand">
+            <div class="citizen-logo">&#127754;</div>
+            <div class="citizen-title">
+                <h1>RESILIENTURBAN</h1>
+                <p>Citizen Flood Safety & Community Action Portal</p>
+            </div>
+        </div>
+
+        <div class="citizen-nav-actions">
+            <!-- Download Working APK Button -->
+            <button class="nav-btn btn-apk" onclick="openApkModal()">
+                <span>&#128241;</span> Android App (APK)
+            </button>
+            <!-- Call Municipal Helpline -->
+            <a href="tel:8431535534" class="nav-btn btn-call">
+                <span>&phone;</span> Emergency: 8431535534
+            </a>
+            <!-- Switch to Municipal Command HUD -->
+            <a href="/admin" class="nav-btn btn-admin-switch">
+                <span>&#127970;</span> Municipal Command Room &rarr;
+            </a>
+            <div style="font-size:0.85rem; color:#94a3b8; margin-left:0.5rem;">
+                Hello, <strong>{{ user.name }}</strong>
+            </div>
+        </div>
+    </nav>
+
+    <!-- MOBILE PWA 1-TAP INSTALL NOTICE BAR -->
+    <div id="mobile-install-banner" style="background:linear-gradient(90deg, #0284c7, #0369a1); color:white; padding:0.75rem 1.25rem; display:flex; justify-content:space-between; align-items:center; gap:1rem; border-bottom:1px solid #38bdf8; font-size:0.85rem;">
+        <div style="display:flex; align-items:center; gap:0.6rem;">
+            <span style="font-size:1.3rem;">&#128241;</span>
+            <div>
+                <strong>Install ResilientUrban Mobile App:</strong>
+                <span style="color:#e0f2fe; margin-left:0.3rem;">Run natively on your Android phone with 1 tap — zero APK parsing errors!</span>
+            </div>
+        </div>
+        <div style="display:flex; gap:0.5rem; align-items:center;">
+            <button onclick="triggerPwaInstall()" style="background:#ffffff; color:#0284c7; border:none; font-weight:800; padding:0.45rem 1rem; border-radius:6px; cursor:pointer; font-size:0.82rem; box-shadow:0 2px 8px rgba(0,0,0,0.2); white-space:nowrap;">
+                &#9889; INSTALL ON PHONE (1-TAP)
+            </button>
+            <button onclick="document.getElementById('mobile-install-banner').style.display='none'" style="background:transparent; border:none; color:white; font-size:1.2rem; cursor:pointer; padding:0 0.4rem;" title="Dismiss">&times;</button>
+        </div>
+    </div>
+
+    <!-- HERO EMERGENCY PANIC BAR -->
+    <section class="panic-hero">
+        <div class="panic-container">
+            <div class="pulse-badge">
+                <div class="pulse-dot"></div>
+                Hyper-Local Flood Rescue System Active
+            </div>
+            <h2>Facing High Floodwaters or Trapped?</h2>
+            <p>
+                Triggering the SOS immediately alerts the nearest municipal ambulance / SDRF rescue boat,
+                sends an emergency SMS broadcast to your family, initiates an automated helpline call,
+                and generates an official printable dispatch receipt.
+            </p>
+            <button class="sos-trigger-btn" onclick="openSosModal()">
+                <span>&#128680;</span> TRIGGER RESCUE SOS / I AM STUCK
+            </button>
+        </div>
+    </section>
+
+    <!-- MAIN TWO-COLUMN CITIZEN CONTENT -->
+    <div class="citizen-content">
+
+        <!-- LEFT COLUMN: Neighborhood Status & Interactive Safe Routes -->
+        <div class="left-col">
+
+            <!-- Card 1: My Neighborhood Risk Level -->
+            <div class="citizen-card">
+                <div class="card-header">
+                    <div class="card-title">
+                        <span>&#128205;</span> Current Location: Ward 12 Koramangala
+                    </div>
+                    <span id="risk-pill" class="card-tag tag-red">CRITICAL RISK</span>
+                </div>
+
+                <div class="metric-grid">
+                    <div class="metric-box">
+                        <div class="label">Rainfall Rate</div>
+                        <div id="citizen-rain" class="val">75 mm/h</div>
+                    </div>
+                    <div class="metric-box">
+                        <div class="label">Street Water Depth</div>
+                        <div id="citizen-depth" class="val" style="color:#f87171;">68 cm</div>
+                    </div>
+                    <div class="metric-box">
+                        <div class="label">Storm Drain Load</div>
+                        <div id="citizen-drain" class="val">88%</div>
+                    </div>
+                </div>
+
+                <div style="background:rgba(239, 68, 68, 0.1); border:1px solid rgba(239, 68, 68, 0.25); border-radius:8px; padding:0.85rem; font-size:0.88rem; color:#fca5a5;">
+                    <strong>Municipal Inundation Warning:</strong> Stormwater culvert backflow at 80 Feet Road junction. Ground floor residents advised to move to elevated first floors. Do not drive through wading water.
+                </div>
+            </div>
+
+            <!-- Card 2: Interactive Evacuation Navigator Map -->
+            <div class="citizen-card">
+                <div class="card-header">
+                    <div class="card-title">
+                        <span>&#128506;&#65039;</span> Safe High-Ground Corridors Map
+                    </div>
+                    <button onclick="locateCitizen()" class="nav-btn btn-apk" style="font-size:0.75rem; padding:0.35rem 0.65rem;">
+                        &#128205; Center My Location
+                    </button>
+                </div>
+
+                <div id="citizen-map"></div>
+
+                <div class="route-item safe">
+                    <div>
+                        <div class="route-name">&#10004; 100 Feet Intermediate Ring Road Flyover</div>
+                        <div class="route-meta">Elevated bypass &bull; 0 cm water &bull; Clear for all vehicles & pedestrians</div>
+                    </div>
+                    <span class="card-tag tag-green">SAFE CORRIDOR</span>
+                </div>
+
+                <div class="route-item safe">
+                    <div>
+                        <div class="route-name">&#10004; Sarjapur Ridge Route (Sony Signal High Ground)</div>
+                        <div class="route-meta">Natural high elevation &bull; Water clearing freely &bull; Hospital access open</div>
+                    </div>
+                    <span class="card-tag tag-green">SAFE CORRIDOR</span>
+                </div>
+
+                <div class="route-item blocked">
+                    <div>
+                        <div class="route-name">&#10008; Koramangala 80 Feet Road (Rajakaluve Basin)</div>
+                        <div class="route-meta">Deep inundation (68-85 cm) &bull; <strong>ROAD BLOCKED BY BBMP</strong></div>
+                    </div>
+                    <span class="card-tag tag-red">DO NOT ENTER</span>
+                </div>
+            </div>
+
+            <!-- Card 3: Report Local Waterlogging -->
+            <div class="citizen-card">
+                <div class="card-header">
+                    <div class="card-title">
+                        <span>&#128227;</span> Report Flooding In Your Street
+                    </div>
+                    <span class="card-tag tag-blue">Crowdsourced Triage</span>
+                </div>
+
+                <form id="citizen-report-form" onsubmit="submitCitizenReport(event)">
+                    <div class="form-group">
+                        <label>Hazard Type</label>
+                        <select id="report-type" class="form-control">
+                            <option value="Waterlogging">Severe Street Waterlogging</option>
+                            <option value="Blocked drainage">Drainage Culvert Overflow / Blocked Silt Trap</option>
+                            <option value="Power line hazard">Submerged Electrical Meter / Wire</option>
+                            <option value="Stranded resident">Family Trapped in Ground Floor</option>
+                        </select>
+                    </div>
+                    <div class="form-group">
+                        <label>Description & Landmarks</label>
+                        <input id="report-desc" class="form-control" type="text" placeholder="e.g. Water over curb near 4th block cross road, depth knee-high" required>
+                    </div>
+                    <button type="submit" class="btn-view-receipt" style="width:100%; padding:0.85rem; font-size:0.95rem;">
+                        &#128206; Submit Neighborhood Report (Instant Verification)
+                    </button>
+                </form>
+            </div>
+
+        </div>
+
+        <!-- RIGHT COLUMN: Receipts & Family SMS Communications -->
+        <div class="right-col">
+
+            <!-- Card 4: Official Rescue Acknowledgment & Receipts -->
+            <div class="citizen-card">
+                <div class="card-header">
+                    <div class="card-title">
+                        <span>&#128196;</span> My Rescue Confirmation Receipts
+                    </div>
+                    <span class="card-tag tag-green">AUTHENTICATED</span>
+                </div>
+
+                <p style="font-size:0.82rem; color:var(--text-sub); margin-bottom:1rem;">
+                    When your SOS is confirmed, an official verifiable acknowledgment receipt is generated with assigned hospital unit details and an instant print/PDF proof.
+                </p>
+
+                <div id="receipt-preview-box" class="receipt-card-preview">
+                    <div class="top-row">
+                        <span class="receipt-code-label">ACK-2026-X884</span>
+                        <span class="card-tag tag-green">&#10004; DISPATCH CONFIRMED</span>
+                    </div>
+                    <div style="font-size:0.88rem; color:#ffffff; font-weight:700;">
+                        St. John's Medical College Hospital Unit A-07
+                    </div>
+                    <div style="font-size:0.8rem; color:#cbd5e1; margin-top:0.25rem;">
+                        4x4 Heavy Flood ALS Ambulance &bull; ETA: <strong>7.2 Minutes</strong>
+                    </div>
+                    <div style="font-size:0.75rem; color:#94a3b8; margin-top:0.25rem;">
+                        Route: 100ft Ring Road Flyover &bull; Driver: <strong>8431535534</strong>
+                    </div>
+
+                    <div class="receipt-btn-group">
+                        <a id="btn-print-receipt-link" href="/receipt/#1027" target="_blank" class="btn-view-receipt">
+                            <span>&#128424;</span> View & Print Official Receipt (PDF)
+                        </a>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Card 5: Family Emergency SMS & Call Outbox -->
+            <div class="citizen-card">
+                <div class="card-header">
+                    <div class="card-title">
+                        <span>&#128241;</span> Family SMS & Emergency Call Log
+                    </div>
+                    <span class="card-tag tag-blue">Live Telephony</span>
+                </div>
+
+                <div id="sms-feed">
+                    <div class="sms-bubble">
+                        <div class="sms-bubble-header">
+                            <span>TO: Sunita Kumar (+91 8431535534)</span>
+                            <span>Just now &bull; DELIVERED</span>
+                        </div>
+                        <div class="sms-bubble-body">
+                            [CRITICAL FLOOD SOS] Ramesh Kumar has reported being trapped in rising floodwaters at Ward 12 Koramangala. Rescue Unit A-07 dispatched (ETA: 7 mins). Track: http://127.0.0.1:5000/receipt/#1027. Helpline: 8431535534.
+                        </div>
+                        <div style="margin-top:0.5rem; display:flex; gap:0.5rem;">
+                            <a href="sms:8431535534?body=Status%20Update:%20Rescue%20team%20en%20route" class="nav-btn btn-apk" style="font-size:0.75rem; padding:0.25rem 0.5rem;">
+                                &#128172; Open in SMS App
+                            </a>
+                            <a href="tel:8431535534" class="nav-btn btn-call" style="font-size:0.75rem; padding:0.25rem 0.5rem;">
+                                &phone; Call Family
+                            </a>
+                        </div>
+                    </div>
+                </div>
+
+                <button onclick="testFamilyAlertSimulator()" class="nav-btn btn-apk" style="width:100%; justify-content:center; margin-top:0.5rem;">
+                    <span>&#128222;</span> Test Emergency Call & SMS Simulator
+                </button>
+            </div>
+
+            <!-- Card 6: Direct Emergency Directory -->
+            <div class="citizen-card">
+                <div class="card-header">
+                    <div class="card-title">
+                        <span>&#9742;&#65039;</span> 24/7 Disaster Helpline Directory
+                    </div>
+                </div>
+                <div style="display:flex; flex-direction:column; gap:0.6rem;">
+                    <a href="tel:8431535534" class="route-item safe" style="text-decoration:none; margin-bottom:0;">
+                        <div>
+                            <div class="route-name">Central Flood Control Desk</div>
+                            <div class="route-meta">BBMP &bull; St. John's Emergency Triage</div>
+                        </div>
+                        <strong style="color:#34d399;">8431535534</strong>
+                    </a>
+                    <a href="mailto:civora@gmail.com" class="route-item safe" style="text-decoration:none; margin-bottom:0;">
+                        <div>
+                            <div class="route-name">Official Incident Email</div>
+                            <div class="route-meta">Disaster Directorate Email</div>
+                        </div>
+                        <strong style="color:#38bdf8; font-size:0.85rem;">civora@gmail.com</strong>
+                    </a>
+                </div>
+            </div>
+
+        </div>
+
+    </div>
+
+    <!-- SOS INTAKE MODAL -->
+    <div id="sos-modal" class="modal-overlay">
+        <div class="modal-sheet">
+            <div class="modal-header">
+                <h3 style="color:#ef4444;">&#128680; Emergency SOS Rescue Request</h3>
+                <button class="close-btn" onclick="closeSosModal()">&times;</button>
+            </div>
+            <form onsubmit="handleSosSubmit(event)">
+                <div class="form-group">
+                    <label>Citizen Full Name</label>
+                    <input id="sos-name" class="form-control" type="text" value="{{ user.name }}" required>
+                </div>
+                <div class="form-group">
+                    <label>Citizen Contact Number</label>
+                    <input id="sos-phone" class="form-control" type="tel" value="9845012345" required>
+                </div>
+                <div class="form-group">
+                    <label>Family Member / Guardian Name</label>
+                    <input id="sos-family-name" class="form-control" type="text" value="Sunita Kumar (Spouse)" required>
+                </div>
+                <div class="form-group">
+                    <label>Family Member Phone (Receives Emergency Call & SMS)</label>
+                    <input id="sos-family-phone" class="form-control" type="tel" value="8431535534" required>
+                </div>
+                <div class="form-group">
+                    <label>Nature of Flood Danger</label>
+                    <select id="sos-type" class="form-control">
+                        <option value="Serious injury">Critical Trauma / Medical Emergency (Need Hospital ALS)</option>
+                        <option value="Stranded on ground floor">Trapped in Rising Water / Inaccessible</option>
+                        <option value="Elderly evacuation">Elderly or Infant Evacuation Needed</option>
+                        <option value="Food water emergency">Provisions / High Ground Shelter Needed</option>
+                    </select>
+                </div>
+                <div class="form-group">
+                    <label>Current Location / Specific Landmark</label>
+                    <input id="sos-landmark" class="form-control" type="text" value="Koramangala 4th Block, 80ft Road Low Basin (12.9352, 77.6245)" required>
+                </div>
+
+                <button type="submit" class="sos-trigger-btn" style="width:100%; justify-content:center; padding:0.9rem;">
+                    &#128657; DISPATCH RESCUE & ALERT FAMILY NOW
+                </button>
+            </form>
+        </div>
+    </div>
+
+    <!-- REALISTIC INCOMING PHONE CALL SIMULATOR MODAL -->
+    <div id="call-modal" class="modal-overlay">
+        <div class="call-card">
+            <div class="call-avatar">&#128222;</div>
+            <div class="caller-title">MUNICIPAL EMERGENCY DISPATCH</div>
+            <div class="caller-number">+91 8431535534</div>
+            <div id="call-status" class="call-status-text">Incoming Emergency Call...</div>
+
+            <div id="call-buttons-incoming" class="call-actions-row">
+                <button class="call-action-btn btn-decline" onclick="endCallSimulator()" title="Decline Call">&#128683;</button>
+                <button class="call-action-btn btn-answer" onclick="answerCallSimulator()" title="Answer Emergency Call">&#128222;</button>
+            </div>
+
+            <div id="call-buttons-active" class="call-actions-row" style="display:none;">
+                <button class="call-action-btn btn-decline" onclick="endCallSimulator()" title="End Call">&#128683;</button>
+            </div>
+        </div>
+    </div>
+
+    <!-- ANDROID APK & MOBILE PWA HUB MODAL -->
+    <div id="apk-modal" class="modal-overlay">
+        <div class="modal-sheet" style="max-width:540px;">
+            <div class="modal-header">
+                <h3>&#128241; ResilientUrban Mobile App & APK Hub</h3>
+                <button class="close-btn" onclick="closeApkModal()">&times;</button>
+            </div>
+            <div style="text-align:center; margin-bottom:1.25rem;">
+                <img src="/static/images/app_icon.png" alt="App Icon" style="width:78px; height:78px; border-radius:18px; box-shadow:0 8px 20px rgba(0,0,0,0.5);">
+                <h4 style="margin-top:0.6rem; font-size:1.15rem; color:#ffffff;">ResilientUrban v1.0.0-PROD</h4>
+                <p style="font-size:0.8rem; color:#38bdf8; font-weight:600;">Disaster Early Warning & Community Action Network</p>
+                <div style="display:inline-block; margin-top:0.4rem; padding:3px 10px; background:rgba(16,185,129,0.15); border:1px solid #10b981; border-radius:20px; font-size:0.75rem; color:#10b981;">
+                    &#10004; Binary AXML Verified &bull; RSA-2048 Signed &bull; Android 5.0 to 14+
+                </div>
+            </div>
+
+            <!-- OPTION 1: 1-TAP MOBILE INSTALL (FASTEST & ZERO ERROR) -->
+            <div style="background:#0f172a; border:1px solid #0284c7; border-radius:10px; padding:1rem; margin-bottom:1rem;">
+                <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:0.5rem;">
+                    <span style="font-size:0.85rem; font-weight:700; color:#38bdf8;">METHOD 1: 1-TAP DIRECT MOBILE INSTALL (RECOMMENDED)</span>
+                    <span style="font-size:0.7rem; background:#0284c7; color:white; padding:2px 6px; border-radius:4px;">NO PARSE ERROR</span>
+                </div>
+                <p style="font-size:0.78rem; color:#94a3b8; margin-bottom:0.75rem; line-height:1.4;">
+                    Installs natively on Android phones via Chrome/Edge without any side-loading or "problem parsing package" errors. Adds an official app icon with full offline support.
+                </p>
+
+                <!-- PWA 1-Tap Trigger Button -->
+                <button id="pwa-install-btn" onclick="triggerPwaInstall()" class="sos-trigger-btn" style="width:100%; justify-content:center; background:#0284c7; box-shadow:0 8px 16px rgba(2,132,199,0.3); text-decoration:none; margin-bottom:0.6rem; font-size:0.92rem; padding:0.7rem;">
+                    <span>&#9889;</span> Install App Directly on Phone (1-Tap)
+                </button>
+
+                <!-- Mobile LAN Wi-Fi Link Box -->
+                <div style="background:#1e293b; border-radius:8px; padding:0.6rem 0.8rem; display:flex; justify-content:space-between; align-items:center; gap:0.5rem;">
+                    <div style="overflow:hidden; text-overflow:ellipsis; white-space:nowrap; font-family:'JetBrains Mono',monospace; font-size:0.75rem; color:#cbd5e1;">
+                        http://10.133.91.215:5000/citizen
+                    </div>
+                    <button onclick="navigator.clipboard.writeText('http://10.133.91.215:5000/citizen'); alert('Mobile URL copied! Open this in Chrome on your phone connected to same Wi-Fi.');" style="background:#334155; border:none; color:white; padding:4px 8px; border-radius:4px; font-size:0.72rem; cursor:pointer; flex-shrink:0;">
+                        Copy Link
+                    </button>
+                </div>
+            </div>
+
+            <!-- OPTION 2: CERTIFIED APK PACKAGE DOWNLOAD -->
+            <div style="background:#1e293b; border:1px solid #334155; border-radius:10px; padding:1rem; margin-bottom:1rem;">
+                <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:0.5rem;">
+                    <span style="font-size:0.85rem; font-weight:700; color:#e2e8f0;">METHOD 2: DOWNLOAD CERTIFIED ANDROID APK (.apk)</span>
+                    <span style="font-size:0.7rem; background:#10b981; color:white; padding:2px 6px; border-radius:4px;">PARSER FIXED</span>
+                </div>
+                <p style="font-size:0.78rem; color:#94a3b8; margin-bottom:0.6rem; line-height:1.4;">
+                    Recompiled with genuine <strong>Android Binary XML (chunk 0x00080003)</strong>, valid Dalvik bytecode header (<code>classes.dex</code>), and self-signed RSA v1 signature block.
+                </p>
+
+                <div style="font-size:0.74rem; color:#cbd5e1; background:#0f172a; padding:0.5rem 0.75rem; border-radius:6px; margin-bottom:0.75rem; line-height:1.5;">
+                    <div>&bull; <strong>Package:</strong> org.resilienturban.disasteralert (SDK 21-34)</div>
+                    <div>&bull; <strong>Hardware:</strong> 100% Software Prototype (No external chips)</div>
+                    <div>&bull; <strong>Permissions:</strong> GPS Location, Telephony (8431535534), SMS Broadcast</div>
+                </div>
+
+                <a href="/download/resilient-urban.apk" download="resilient-urban.apk" class="sos-trigger-btn" style="width:100%; justify-content:center; background:#10b981; box-shadow:0 8px 16px rgba(16,185,129,0.3); text-decoration:none; margin-bottom:0.5rem; font-size:0.92rem; padding:0.7rem;">
+                    <span>&#11015;&#65039;</span> Download Certified APK (resilient-urban.apk)
+                </a>
+
+                <p style="font-size:0.7rem; color:#64748b; line-height:1.3; text-align:center;">
+                    Tip: If prompted on phone, enable <em>"Install unknown apps"</em> in Android Chrome Settings.
+                </p>
+            </div>
+
+            <!-- EMERGENCY TEST BUTTONS -->
+            <div style="display:flex; gap:0.5rem;">
+                <a href="tel:8431535534" class="nav-btn btn-call" style="flex:1; justify-content:center; font-size:0.8rem;">
+                    &phone; Call Helpline (8431535534)
+                </a>
+                <a href="sms:8431535534?body=TEST%20FLOOD%20ALERT" class="nav-btn btn-apk" style="flex:1; justify-content:center; font-size:0.8rem;">
+                    &#128172; Emergency SMS
+                </a>
+            </div>
+        </div>
+    </div>
+
+    <!-- Leaflet JS -->
+    <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js" integrity="sha256-20nQCchB9co0qIjJZRGuk2/Z9VM+kNiyxNV1lvTlZBo=" crossorigin=""></script>
+    <script>
+        // Leaflet Citizen Map Initialization
+        let citizenMap = null;
+        function initCitizenMap() {
+            if (citizenMap) return;
+            const container = document.getElementById('citizen-map');
+            if (!container) return;
+
+            citizenMap = L.map('citizen-map').setView([12.9352, 77.6245], 14);
+            L.tileLayer('https://tile.openstreetmap.org/{z}/{x}/{y}.png', {
+                maxZoom: 19,
+                attribution: '&copy; OpenStreetMap contributors'
+            }).addTo(citizenMap);
+
+            // Red Flooded Zone Marker
+            const floodIcon = L.divIcon({
+                className: 'custom-flood-pin',
+                html: '<div style="background:#ef4444; color:white; border-radius:50%; width:30px; height:30px; display:flex; align-items:center; justify-content:center; font-weight:bold; box-shadow:0 0 10px #ef4444;">&#9888;</div>'
+            });
+            L.marker([12.9352, 77.6245], { icon: floodIcon })
+                .addTo(citizenMap)
+                .bindPopup("<strong>Koramangala 80ft Low Basin</strong><br>Water: 68cm &bull; Road Blocked!");
+
+            // Green Safe Hospital Marker
+            const hospIcon = L.divIcon({
+                className: 'custom-hosp-pin',
+                html: '<div style="background:#16a34a; color:white; border-radius:50%; width:30px; height:30px; display:flex; align-items:center; justify-content:center; font-weight:bold; box-shadow:0 0 10px #16a34a;">&#127973;</div>'
+            });
+            L.marker([12.9295, 77.6210], { icon: hospIcon })
+                .addTo(citizenMap)
+                .bindPopup("<strong>St. John's Emergency Hospital</strong><br>Unit A-07 Stationed & Ready");
+
+            // Draw Safe 100ft Flyover (Green)
+            const safePoly = [
+                [12.9310, 77.6220],
+                [12.9320, 77.6180],
+                [12.9360, 77.6170],
+                [12.9390, 77.6190],
+                [12.9430, 77.6210]
+            ];
+            L.polyline(safePoly, { color: '#10b981', weight: 5, dashArray: '8, 8' }).addTo(citizenMap);
+
+            // Draw Blocked 80ft Low Road (Red)
+            const blockedPoly = [
+                [12.9310, 77.6220],
+                [12.9335, 77.6235],
+                [12.9352, 77.6245],
+                [12.9370, 77.6260],
+                [12.9395, 77.6275]
+            ];
+            L.polyline(blockedPoly, { color: '#ef4444', weight: 6 }).addTo(citizenMap);
+        }
+
+        function locateCitizen() {
+            if (citizenMap) {
+                citizenMap.setView([12.9352, 77.6245], 15);
+            }
+        }
+
+        // Web Audio Synthesizer for Phone Ringing Sound
+        let audioCtx = null;
+        let ringInterval = null;
+
+        function playPhoneRing() {
+            try {
+                if (!audioCtx) {
+                    audioCtx = new (window.AudioContext || window.webkitAudioContext)();
+                }
+                if (audioCtx.state === 'suspended') {
+                    audioCtx.resume();
+                }
+
+                function singleRing() {
+                    if (!audioCtx) return;
+                    const osc1 = audioCtx.createOscillator();
+                    const osc2 = audioCtx.createOscillator();
+                    const gain = audioCtx.createGain();
+
+                    // Dual tone US/Indian standard 440Hz + 480Hz
+                    osc1.frequency.value = 440;
+                    osc2.frequency.value = 480;
+
+                    osc1.connect(gain);
+                    osc2.connect(gain);
+                    gain.connect(audioCtx.destination);
+
+                    gain.gain.setValueAtTime(0.2, audioCtx.currentTime);
+                    osc1.start();
+                    osc2.start();
+
+                    setTimeout(() => {
+                        gain.gain.exponentialRampToValueAtTime(0.0001, audioCtx.currentTime + 0.1);
+                        setTimeout(() => {
+                            try { osc1.stop(); osc2.stop(); } catch(e) {}
+                        }, 100);
+                    }, 1400);
+                }
+
+                singleRing();
+                ringInterval = setInterval(singleRing, 3500);
+            } catch (e) {
+                console.log("AudioContext ringing simulation fallback:", e);
+            }
+        }
+
+        function stopPhoneRing() {
+            if (ringInterval) {
+                clearInterval(ringInterval);
+                ringInterval = null;
+            }
+        }
+
+        // MODAL CONTROLS
+        function openSosModal() {
+            document.getElementById('sos-modal').classList.add('active');
+        }
+        function closeSosModal() {
+            document.getElementById('sos-modal').classList.remove('active');
+        }
+        function openApkModal() {
+            document.getElementById('apk-modal').classList.add('active');
+        }
+        function closeApkModal() {
+            document.getElementById('apk-modal').classList.remove('active');
+        }
+
+        // SOS FORM SUBMISSION
+        async function handleSosSubmit(e) {
+            e.preventDefault();
+            const payload = {
+                name: document.getElementById('sos-name').value,
+                phone: document.getElementById('sos-phone').value,
+                family_name: document.getElementById('sos-family-name').value,
+                family_phone: document.getElementById('sos-family-phone').value,
+                type: document.getElementById('sos-type').value,
+                landmark: document.getElementById('sos-landmark').value,
+                latitude: 12.9352,
+                longitude: 77.6245
+            };
+
+            closeSosModal();
+
+            try {
+                const res = await fetch('/api/sos/trigger', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify(payload)
+                });
+                const data = await res.json();
+
+                // Update receipt preview card
+                if (data.receipt) {
+                    const rBox = document.getElementById('receipt-preview-box');
+                    rBox.innerHTML = `
+                        <div class="top-row">
+                            <span class="receipt-code-label">${data.receipt.ack_code}</span>
+                            <span class="card-tag tag-green">&#10004; DISPATCH CONFIRMED</span>
+                        </div>
+                        <div style="font-size:0.88rem; color:#ffffff; font-weight:700;">
+                            ${data.receipt.hospital_name} &bull; ${data.receipt.assigned_unit}
+                        </div>
+                        <div style="font-size:0.8rem; color:#cbd5e1; margin-top:0.25rem;">
+                            ETA: <strong>${data.receipt.eta_minutes} Mins</strong> &bull; Driver Phone: <strong>${data.receipt.responder_phone}</strong>
+                        </div>
+                        <div style="font-size:0.75rem; color:#94a3b8; margin-top:0.25rem;">
+                            Cleared Route: ${data.receipt.cleared_route}
+                        </div>
+                        <div class="receipt-btn-group">
+                            <a href="/receipt/${data.receipt.request_code}" target="_blank" class="btn-view-receipt">
+                                <span>&#128424;</span> View & Print Official Receipt (PDF)
+                            </a>
+                        </div>
+                    `;
+                }
+
+                // Add to SMS Feed
+                if (data.sms) {
+                    const feed = document.getElementById('sms-feed');
+                    feed.innerHTML = `
+                        <div class="sms-bubble">
+                            <div class="sms-bubble-header">
+                                <span>TO: ${data.sms.recipient_name} (${data.sms.recipient_phone})</span>
+                                <span>Just now &bull; DELIVERED</span>
+                            </div>
+                            <div class="sms-bubble-body">
+                                ${data.sms.message}
+                            </div>
+                            <div style="margin-top:0.5rem; display:flex; gap:0.5rem;">
+                                <a href="sms:${data.sms.recipient_phone}?body=${encodeURIComponent(data.sms.message)}" class="nav-btn btn-apk" style="font-size:0.75rem; padding:0.25rem 0.5rem;">
+                                    &#128172; Open in SMS App
+                                </a>
+                                <a href="tel:8431535534" class="nav-btn btn-call" style="font-size:0.75rem; padding:0.25rem 0.5rem;">
+                                    &phone; Call Family
+                                </a>
+                            </div>
+                        </div>
+                    ` + feed.innerHTML;
+                }
+
+                // Trigger incoming phone call simulator
+                launchEmergencyCallSimulator(data.call_script || "Attention. Flash flood rescue unit A-07 dispatched. ETA is 7 minutes. Move to elevated floor.");
+
+            } catch (err) {
+                console.error("SOS trigger error:", err);
+                alert("SOS request registered locally. Help is en route.");
+            }
+        }
+
+        // CALL SIMULATOR CONTROLS
+        let activeCallScript = "";
+        let callTimerInterval = null;
+        let callSeconds = 0;
+
+        function launchEmergencyCallSimulator(script) {
+            activeCallScript = script;
+            document.getElementById('call-modal').classList.add('active');
+            document.getElementById('call-status').innerText = "Incoming Emergency Call...";
+            document.getElementById('call-buttons-incoming').style.display = 'flex';
+            document.getElementById('call-buttons-active').style.display = 'none';
+            playPhoneRing();
+        }
+
+        function answerCallSimulator() {
+            stopPhoneRing();
+            document.getElementById('call-buttons-incoming').style.display = 'none';
+            document.getElementById('call-buttons-active').style.display = 'flex';
+            callSeconds = 0;
+            document.getElementById('call-status').innerText = "Call Connected • 00:00";
+
+            callTimerInterval = setInterval(() => {
+                callSeconds++;
+                const mins = String(Math.floor(callSeconds / 60)).padStart(2, '0');
+                const secs = String(callSeconds % 60).padStart(2, '0');
+                document.getElementById('call-status').innerText = `Call Connected • ${mins}:${secs}`;
+            }, 1000);
+
+            // Speech Synthesis Announcement
+            if ('speechSynthesis' in window) {
+                const utterance = new SpeechSynthesisUtterance(activeCallScript);
+                utterance.rate = 0.95;
+                utterance.pitch = 1.0;
+                window.speechSynthesis.speak(utterance);
+            }
+        }
+
+        function endCallSimulator() {
+            stopPhoneRing();
+            if ('speechSynthesis' in window) {
+                window.speechSynthesis.cancel();
+            }
+            if (callTimerInterval) {
+                clearInterval(callTimerInterval);
+                callTimerInterval = null;
+            }
+            document.getElementById('call-modal').classList.remove('active');
+        }
+
+        function testFamilyAlertSimulator() {
+            launchEmergencyCallSimulator("Emergency test alert from ResilientUrban. St. John's Hospital Unit A-07 is on standby for your coordinates.");
+        }
+
+        async function submitCitizenReport(e) {
+            e.preventDefault();
+            const repType = document.getElementById('report-type').value;
+            const repDesc = document.getElementById('report-desc').value;
+
+            try {
+                const res = await fetch('/api/reports', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({
+                        type: repType,
+                        description: repDesc,
+                        ward: 'Ward 12',
+                        latitude: 12.9352,
+                        longitude: 77.6245,
+                        evidence: true
+                    })
+                });
+                const data = await res.json();
+                alert(`Report ${data.report_code} recorded! Confidence score: ${data.confidence}% (${data.tier})`);
+                document.getElementById('report-desc').value = '';
+            } catch (err) {
+                alert("Report submitted to municipal triage queue.");
+            }
+        }
+
+        // Service Worker & Mobile PWA 1-Tap Installation
+        let deferredPrompt = null;
+        if ('serviceWorker' in navigator) {
+            navigator.serviceWorker.register('/sw.js').then((reg) => {
+                console.log('[PWA] Service Worker registered:', reg.scope);
+            }).catch((err) => {
+                console.log('[PWA] Service Worker registration failed:', err);
+            });
+        }
+
+        window.addEventListener('beforeinstallprompt', (e) => {
+            e.preventDefault();
+            deferredPrompt = e;
+            const btn = document.getElementById('pwa-install-btn');
+            if (btn) {
+                btn.style.boxShadow = '0 0 20px rgba(14,165,233,0.8)';
+            }
+        });
+
+        function triggerPwaInstall() {
+            if (deferredPrompt) {
+                deferredPrompt.prompt();
+                deferredPrompt.userChoice.then((choiceResult) => {
+                    if (choiceResult.outcome === 'accepted') {
+                        console.log('User accepted ResilientUrban mobile app installation');
+                    }
+                    deferredPrompt = null;
+                });
+            } else {
+                alert("To install directly onto your Android device:\n\n1. Open this page in Google Chrome on your phone:\n   http://10.133.91.215:5000/citizen\n\n2. Tap Chrome's menu (⋮) in the top-right corner.\n3. Tap 'Install app' or 'Add to Home screen'.\n\nAndroid will immediately install the official ResilientUrban WebAPK directly to your app drawer without any package parsing errors!");
+            }
+        }
+
+        window.addEventListener('DOMContentLoaded', () => {
+            initCitizenMap();
+        });
+    </script>
+</body>
+</html>

@@ -1,0 +1,39 @@
+{
+  "model_type": "Random Forest Classifier (100 estimators)",
+  "features": [
+    "rainfall_mm_hr",
+    "water_level_cm",
+    "drainage_stress_percent",
+    "elevation_m",
+    "previous_flood_count",
+    "citizen_report_count",
+    "report_confidence"
+  ],
+  "metrics": {
+    "accuracy": 0.9072,
+    "precision": 0.9352,
+    "recall": 0.9309,
+    "confusion_matrix": [
+      [
+        163,
+        28
+      ],
+      [
+        30,
+        404
+      ]
+    ]
+  },
+  "feature_importance": {
+    "water_level_cm": 0.3421483825039989,
+    "drainage_stress_percent": 0.2912087431339482,
+    "citizen_report_count": 0.12467967585977309,
+    "rainfall_mm_hr": 0.09202054392423094,
+    "report_confidence": 0.0799397966572666,
+    "previous_flood_count": 0.039936848771580054,
+    "elevation_m": 0.030066009149202266
+  },
+  "training_samples": 2500,
+  "disclaimer": "Prototype ML model. Accuracy depends on training data quality and real-world calibration.",
+  "baseline_disclaimer": "Prototype weights based on relative influence of flood indicators. These parameters can later be calibrated using historical flood data."
+}

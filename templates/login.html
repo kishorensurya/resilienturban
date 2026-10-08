@@ -1,0 +1,384 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>RESILIENTURBAN — Secure Authentication Portal</title>
+  
+  <link rel="stylesheet" href="{{ url_for('static', filename='css/style.css') }}">
+  <style>
+    .login-container {
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      min-height: calc(100vh - 120px);
+      padding: 24px;
+    }
+
+    .login-card-3d {
+      background: linear-gradient(135deg, rgba(16, 28, 54, 0.95), rgba(9, 15, 30, 0.92));
+      backdrop-filter: blur(20px);
+      border: 1px solid var(--neon-cyan);
+      border-radius: 20px;
+      padding: 38px 42px;
+      width: 100%;
+      max-width: 500px;
+      box-shadow: 0 30px 60px rgba(0, 0, 0, 0.8), 0 0 35px rgba(0, 229, 255, 0.25);
+      position: relative;
+    }
+
+    .auth-mode-tabs {
+      display: flex;
+      gap: 8px;
+      margin-bottom: 24px;
+      background: rgba(0, 0, 0, 0.4);
+      padding: 4px;
+      border-radius: 12px;
+      border: 1px solid var(--border-subtle);
+    }
+
+    .auth-tab-btn {
+      flex: 1;
+      padding: 10px;
+      border: none;
+      background: transparent;
+      color: var(--text-muted);
+      font-family: var(--font-tech);
+      font-size: 14px;
+      font-weight: 700;
+      border-radius: 8px;
+      cursor: pointer;
+      transition: all 0.25s ease;
+      text-align: center;
+    }
+
+    .auth-tab-btn.active {
+      color: #fff;
+      background: linear-gradient(135deg, rgba(0, 229, 255, 0.3), rgba(41, 121, 255, 0.3));
+      border: 1px solid var(--neon-cyan);
+      box-shadow: 0 0 14px rgba(0, 229, 255, 0.35);
+    }
+
+    .form-section {
+      display: none;
+    }
+    .form-section.active {
+      display: block;
+      animation: fadeIn 0.3s ease-out;
+    }
+
+    .auth-alert-box {
+      display: none;
+      padding: 10px 14px;
+      border-radius: 8px;
+      font-size: 12px;
+      margin-bottom: 16px;
+    }
+    .auth-alert-box.error {
+      display: block;
+      background: rgba(255, 23, 68, 0.15);
+      border: 1px solid var(--neon-crimson);
+      color: #ff8a80;
+    }
+    .auth-alert-box.success {
+      display: block;
+      background: rgba(0, 230, 118, 0.15);
+      border: 1px solid var(--neon-emerald);
+      color: #b9f6ca;
+    }
+
+    .form-options-row {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      font-size: 12px;
+      color: var(--text-muted);
+      margin: 12px 0 18px;
+    }
+  </style>
+</head>
+<body>
+
+  <!-- 3D Digital Rain Canvas -->
+  <canvas id="canvas-fx"></canvas>
+
+  <div class="app-wrapper">
+
+    <!-- Top Master Header -->
+    <header class="header-bar">
+      <div class="brand-section">
+        <div class="brand-logo-3d">🌊</div>
+        <div class="brand-text">
+          <h1>RESILIENTURBAN <span class="brand-badge">PORTAL</span></h1>
+          <p>Hyper-Local Disaster Early Warning & Community Action Network</p>
+        </div>
+      </div>
+
+      <div class="header-actions">
+        <a href="tel:{{ support_phone }}" class="support-pill">
+          <span>📞</span> {{ support_phone }}
+        </a>
+        <a href="mailto:{{ support_email }}" class="support-pill">
+          <span>✉️</span> {{ support_email }}
+        </a>
+        <a href="/" class="btn-secondary" style="text-decoration:none;">
+          <span>←</span> Back to Command Center
+        </a>
+      </div>
+    </header>
+
+    <div class="login-container">
+      <div class="login-card-3d">
+        
+        <div style="text-align: center; margin-bottom: 22px;">
+          <h2 style="font-family: var(--font-display); font-size: 20px; color: #fff; letter-spacing: 1.5px;">
+            SECURE ACCESS PORTAL
+          </h2>
+          <p style="font-size: 12px; color: var(--text-muted); margin-top: 4px;">
+            Municipal Flood Control & Citizen Emergency Response Network
+          </p>
+        </div>
+
+        <!-- Alert Notice Box -->
+        <div id="auth-alert" class="auth-alert-box"></div>
+
+        <!-- Primary Form Mode Tabs (Sign In vs Register) -->
+        <div class="auth-mode-tabs">
+          <button id="tab-btn-signin" class="auth-tab-btn active" onclick="switchAuthMode('signin')">
+            Sign In
+          </button>
+          <button id="tab-btn-register" class="auth-tab-btn" onclick="switchAuthMode('register')">
+            Create Account
+          </button>
+        </div>
+
+        <!-- ==========================================
+             1. STANDARD SIGN IN FORM
+             ========================================== -->
+        <form id="form-signin" class="form-section active">
+          <div class="form-group">
+            <label>Authority Role / Portal:</label>
+            <select id="signin-role" class="form-select">
+              <option value="ADMIN">Municipal Control Room / Dispatch Supervisor</option>
+              <option value="CITIZEN" selected>Citizen / Community Resident</option>
+            </select>
+          </div>
+
+          <div class="form-group">
+            <label>Username or Registered Email:</label>
+            <input type="text" id="signin-username" class="form-input" placeholder="Enter your username or email" required autocomplete="username">
+          </div>
+
+          <div class="form-group">
+            <label>Password:</label>
+            <input type="password" id="signin-password" class="form-input" placeholder="Enter your password" required autocomplete="current-password">
+          </div>
+
+          <div class="form-options-row">
+            <label style="display: flex; align-items: center; gap: 6px; cursor: pointer;">
+              <input type="checkbox" id="remember-me" checked style="accent-color: var(--neon-cyan);">
+              <span>Remember this workstation</span>
+            </label>
+            <a href="mailto:{{ support_email }}?subject=Password%20Reset%20Request%20-%20ResilientUrban" style="color: var(--neon-cyan); text-decoration: none;">
+              Forgot Password?
+            </a>
+          </div>
+
+          <button type="submit" id="btn-submit-signin" class="btn-primary">
+            SIGN IN TO SYSTEM
+          </button>
+        </form>
+
+        <!-- ==========================================
+             2. STANDARD REGISTRATION FORM
+             ========================================== -->
+        <form id="form-register" class="form-section">
+          <div class="form-group">
+            <label>Full Legal Name:</label>
+            <input type="text" id="reg-name" class="form-input" placeholder="e.g. Ramesh Kumar" required>
+          </div>
+
+          <div class="form-group">
+            <label>Choose Username:</label>
+            <input type="text" id="reg-username" class="form-input" placeholder="Choose a unique username" required autocomplete="username">
+          </div>
+
+          <div class="form-group">
+            <label>Email Address:</label>
+            <input type="email" id="reg-email" class="form-input" placeholder="e.g. resident@gmail.com" required autocomplete="email">
+          </div>
+
+          <div class="form-group">
+            <label>Mobile Number (For Emergency Alerts):</label>
+            <input type="tel" id="reg-phone" class="form-input" placeholder="10-digit mobile number" required>
+          </div>
+
+          <div class="form-group">
+            <label>Account Type:</label>
+            <select id="reg-role" class="form-select">
+              <option value="CITIZEN" selected>Citizen / Community Resident</option>
+              <option value="ADMIN">Municipal Officer / Emergency Responder</option>
+            </select>
+          </div>
+
+          <div class="form-group">
+            <label>Security Password:</label>
+            <input type="password" id="reg-password" class="form-input" placeholder="Minimum 6 characters" required autocomplete="new-password">
+          </div>
+
+          <button type="submit" id="btn-submit-reg" class="btn-primary" style="margin-top: 10px;">
+            CREATE ACCOUNT & PROCEED
+          </button>
+        </form>
+
+        <!-- Public Guest Bypass Link -->
+        <div style="text-align: center; margin-top: 20px;">
+          <a href="/" style="font-size: 12px; color: var(--text-muted); text-decoration: none; transition: color 0.2s ease;">
+            Or <strong style="color: var(--neon-cyan);">Continue as Guest Visitor</strong> to view public alerts →
+          </a>
+        </div>
+
+        <!-- 24/7 Official Support Helpcard -->
+        <div style="margin-top: 24px; padding: 14px; background: rgba(0,0,0,0.35); border-radius: 10px; border: 1px solid var(--border-subtle); font-size: 12px; text-align: center;">
+          <div style="color: var(--neon-amber); font-weight: 700; margin-bottom: 4px;">
+            Official Disaster Helpdesk & System Support:
+          </div>
+          <div style="color: #fff; line-height: 1.6;">
+            📞 Helpline: <a href="tel:{{ support_phone }}" style="color: var(--neon-cyan); text-decoration: none; font-weight: bold;">{{ support_phone }}</a> &nbsp;|&nbsp; 
+            ✉️ Email: <a href="mailto:{{ support_email }}" style="color: var(--neon-cyan); text-decoration: none; font-weight: bold;">{{ support_email }}</a>
+          </div>
+        </div>
+
+      </div>
+    </div>
+
+    <!-- Bottom System Disclaimer -->
+    <footer class="disclaimer-banner">
+      <div>
+        <span>⚖️ <strong>DISCLAIMER:</strong> Live Municipal Flood Telemetry & Emergency Coordination System.</span>
+      </div>
+      <div>
+        <span>Emergency Helpline: <strong>{{ support_phone }}</strong> | Email: <strong>{{ support_email }}</strong></span>
+      </div>
+    </footer>
+
+  </div>
+
+  <script src="{{ url_for('static', filename='js/background_fx.js') }}"></script>
+  <script>
+    function switchAuthMode(mode) {
+      const tabSignIn = document.getElementById('tab-btn-signin');
+      const tabReg = document.getElementById('tab-btn-register');
+      const formSignIn = document.getElementById('form-signin');
+      const formReg = document.getElementById('form-register');
+      const alertBox = document.getElementById('auth-alert');
+      alertBox.className = 'auth-alert-box';
+      alertBox.style.display = 'none';
+
+      if (mode === 'signin') {
+        tabSignIn.classList.add('active');
+        tabReg.classList.remove('active');
+        formSignIn.classList.add('active');
+        formReg.classList.remove('active');
+      } else {
+        tabReg.classList.add('active');
+        tabSignIn.classList.remove('active');
+        formReg.classList.add('active');
+        formSignIn.classList.remove('active');
+      }
+    }
+
+    function showAlert(msg, isError = true) {
+      const alertBox = document.getElementById('auth-alert');
+      alertBox.className = `auth-alert-box ${isError ? 'error' : 'success'}`;
+      alertBox.textContent = msg;
+    }
+
+    // Standard Sign In Submission
+    document.getElementById('form-signin').addEventListener('submit', async (e) => {
+      e.preventDefault();
+      const u = document.getElementById('signin-username').value.trim();
+      const p = document.getElementById('signin-password').value.trim();
+      const r = document.getElementById('signin-role').value;
+      const btn = document.getElementById('btn-submit-signin');
+
+      btn.disabled = true;
+      btn.textContent = 'Verifying credentials...';
+
+      try {
+        const res = await fetch('/api/login', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ username: u, password: p, role: r })
+        });
+        const data = await res.json();
+        if (data.status === 'SUCCESS') {
+          showAlert('Authentication verified. Redirecting...', false);
+          setTimeout(() => {
+            window.location.href = data.redirect_url || '/';
+          }, 600);
+        } else {
+          showAlert(data.message || 'Invalid username/email or password.', true);
+          btn.disabled = false;
+          btn.textContent = 'SIGN IN TO SYSTEM';
+        }
+      } catch (err) {
+        showAlert('Network or server connection error: ' + err.message, true);
+        btn.disabled = false;
+        btn.textContent = 'SIGN IN TO SYSTEM';
+      }
+    });
+
+    // Standard Registration Submission
+    document.getElementById('form-register').addEventListener('submit', async (e) => {
+      e.preventDefault();
+      const name = document.getElementById('reg-name').value.trim();
+      const u = document.getElementById('reg-username').value.trim();
+      const email = document.getElementById('reg-email').value.trim();
+      const phone = document.getElementById('reg-phone').value.trim();
+      const role = document.getElementById('reg-role').value;
+      const p = document.getElementById('reg-password').value.trim();
+      const btn = document.getElementById('btn-submit-reg');
+
+      if (p.length < 5) {
+        showAlert('Password must be at least 5 characters long.', true);
+        return;
+      }
+
+      btn.disabled = true;
+      btn.textContent = 'Registering account...';
+
+      try {
+        const res = await fetch('/api/register', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({
+            full_name: name,
+            username: u,
+            email: email,
+            phone: phone,
+            role: role,
+            password: p
+          })
+        });
+        const data = await res.json();
+        if (data.status === 'SUCCESS') {
+          showAlert('Registration successful! Redirecting to dashboard...', false);
+          const dest = (role === 'CITIZEN') ? '/citizen' : '/admin';
+          setTimeout(() => {
+            window.location.href = dest;
+          }, 700);
+        } else {
+          showAlert(data.message || 'Could not complete registration.', true);
+          btn.disabled = false;
+          btn.textContent = 'CREATE ACCOUNT & PROCEED';
+        }
+      } catch (err) {
+        showAlert('Registration error: ' + err.message, true);
+        btn.disabled = false;
+        btn.textContent = 'CREATE ACCOUNT & PROCEED';
+      }
+    });
+  </script>
+</body>
+</html>

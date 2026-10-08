@@ -1,0 +1,22 @@
+{
+  "short_name": "ResilientUrban",
+  "name": "ResilientUrban - Hyper-Local Flood Early Warning & Action",
+  "icons": [
+    {
+      "src": "/static/images/app_icon_96.png",
+      "type": "image/png",
+      "sizes": "96x96"
+    },
+    {
+      "src": "/static/images/app_icon.png",
+      "type": "image/png",
+      "sizes": "192x192"
+    }
+  ],
+  "start_url": "/?source=pwa",
+  "background_color": "#020617",
+  "theme_color": "#0f172a",
+  "display": "standalone",
+  "orientation": "portrait",
+  "description": "Hyper-local urban flood early warning, emergency SOS dispatch, and community action network."
+}
